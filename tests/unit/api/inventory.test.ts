@@ -286,7 +286,7 @@ describe('InventoryApi', () => {
     });
   });
 
-  describe('bulkCreateOrReplaceInventoryItem', () => {
+  describe('bulkCreateOrReplaceInventoryItem compact payloads', () => {
     it('should bulk create or replace inventory items', async () => {
       const mockResponse = { responses: [] };
       const requests = {
@@ -686,7 +686,7 @@ describe('InventoryApi', () => {
     });
   });
 
-  describe('deleteInventoryItem', () => {
+  describe('deleteInventoryItem additional validation', () => {
     it('should delete inventory item by SKU', async () => {
       vi.mocked(client.delete).mockResolvedValue(undefined);
 

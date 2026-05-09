@@ -34,6 +34,7 @@ import {
 // Common/Shared Schemas
 // ============================================================================
 
+/** Shared eBay duration object with unit and numeric value fields. */
 export const timeDurationSchema = z
   .object({
     unit: z.nativeEnum(TimeDurationUnit),
@@ -41,6 +42,7 @@ export const timeDurationSchema = z
   })
   .passthrough();
 
+/** Shared monetary amount object used by policy, refund, and listing tools. */
 export const amountSchema = z
   .object({
     currency: z.string(),
@@ -48,6 +50,7 @@ export const amountSchema = z
   })
   .passthrough();
 
+/** Shared marketplace region descriptor for policy and shipping inputs. */
 export const regionSchema = z
   .object({
     regionName: z.string().optional(),
@@ -55,6 +58,7 @@ export const regionSchema = z
   })
   .passthrough();
 
+/** Shared include/exclude region set used by fulfillment and shipping policies. */
 export const regionSetSchema = z
   .object({
     regionIncluded: z.array(regionSchema).optional(),
@@ -66,6 +70,7 @@ export const regionSetSchema = z
 // Account Management Schemas
 // ============================================================================
 
+/** Category type input used when selecting default or motor-vehicle policy scopes. */
 export const categoryTypeSchema = z
   .object({
     name: z.string().optional(),
@@ -73,6 +78,7 @@ export const categoryTypeSchema = z
   })
   .passthrough();
 
+/** Shipping service option used inside fulfillment policy shipping choices. */
 export const shippingServiceSchema = z
   .object({
     additionalShippingCost: amountSchema.optional(),
@@ -88,6 +94,7 @@ export const shippingServiceSchema = z
   })
   .passthrough();
 
+/** Shipping option group used by fulfillment policy creation and updates. */
 export const shippingOptionSchema = z
   .object({
     costType: z.nativeEnum(ShippingCostType),
@@ -98,6 +105,7 @@ export const shippingOptionSchema = z
   })
   .passthrough();
 
+/** Fulfillment policy payload accepted by account management tools. */
 export const fulfillmentPolicySchema = z
   .object({
     name: z.string(),
@@ -114,6 +122,7 @@ export const fulfillmentPolicySchema = z
   })
   .passthrough();
 
+/** Payment method payload used by payment policy tools. */
 export const paymentMethodSchema = z
   .object({
     paymentMethodType: z.string(),
@@ -128,6 +137,7 @@ export const paymentMethodSchema = z
   })
   .passthrough();
 
+/** Deposit requirement payload used by motor-vehicle payment policies. */
 export const depositSchema = z
   .object({
     depositAmount: amountSchema.optional(),
@@ -136,6 +146,7 @@ export const depositSchema = z
   })
   .passthrough();
 
+/** Payment policy payload accepted by account management tools. */
 export const paymentPolicySchema = z
   .object({
     name: z.string(),
@@ -150,6 +161,7 @@ export const paymentPolicySchema = z
   })
   .passthrough();
 
+/** Return policy payload accepted by account management tools. */
 export const returnPolicySchema = z
   .object({
     name: z.string(),
@@ -167,6 +179,7 @@ export const returnPolicySchema = z
   })
   .passthrough();
 
+/** Custom policy payload for seller-defined account policies. */
 export const customPolicySchema = z
   .object({
     name: z.string(),
@@ -176,6 +189,7 @@ export const customPolicySchema = z
   })
   .passthrough();
 
+/** Sales tax base payload used for account tax configuration. */
 export const salesTaxBaseSchema = z
   .object({
     salesTaxPercentage: z.string(),
@@ -183,6 +197,7 @@ export const salesTaxBaseSchema = z
   })
   .passthrough();
 
+/** Program enrollment request payload for eBay account programs. */
 export const programRequestSchema = z
   .object({
     programType: z.string(),
@@ -193,6 +208,7 @@ export const programRequestSchema = z
 // Inventory Management Schemas
 // ============================================================================
 
+/** Inventory availability payload for ship-to-location and pickup quantities. */
 export const availabilitySchema = z
   .object({
     shipToLocationAvailability: z
@@ -204,6 +220,7 @@ export const availabilitySchema = z
   })
   .passthrough();
 
+/** Product details payload used inside inventory item requests. */
 export const productSchema = z
   .object({
     title: z.string().optional(),
@@ -219,6 +236,7 @@ export const productSchema = z
   })
   .passthrough();
 
+/** Inventory item payload for create, replace, and bulk inventory item tools. */
 export const inventoryItemSchema = z
   .object({
     availability: availabilitySchema.optional(),
@@ -250,6 +268,7 @@ export const inventoryItemSchema = z
   })
   .passthrough();
 
+/** Offer pricing payload for fixed-price and auction listing tools. */
 export const pricingSchema = z
   .object({
     price: amountSchema,
@@ -259,6 +278,7 @@ export const pricingSchema = z
   })
   .passthrough();
 
+/** Listing policy IDs attached to offer creation and update payloads. */
 export const listingPoliciesSchema = z
   .object({
     fulfillmentPolicyId: z.string().optional(),
@@ -276,6 +296,7 @@ export const listingPoliciesSchema = z
   })
   .passthrough();
 
+/** Offer payload used by inventory offer create and update tools. */
 export const offerSchema = z
   .object({
     sku: z.string(),
@@ -299,6 +320,7 @@ export const offerSchema = z
   })
   .passthrough();
 
+/** Product compatibility payload for parts-compatibility inventory tools. */
 export const productCompatibilitySchema = z
   .object({
     compatibleProducts: z
@@ -329,6 +351,7 @@ export const productCompatibilitySchema = z
   })
   .passthrough();
 
+/** Inventory item group payload used for variation groups. */
 export const inventoryItemGroupSchema = z
   .object({
     aspects: z.record(z.array(z.string())),
@@ -356,6 +379,7 @@ export const inventoryItemGroupSchema = z
   })
   .passthrough();
 
+/** Inventory location payload for seller warehouse and pickup locations. */
 export const locationSchema = z
   .object({
     location: z
@@ -426,6 +450,7 @@ export const locationSchema = z
 // Fulfillment/Order Management Schemas
 // ============================================================================
 
+/** Line-item refund payload used inside fulfillment refund requests. */
 export const lineItemRefundSchema = z
   .object({
     lineItemId: z.string(),
@@ -440,6 +465,7 @@ export const lineItemRefundSchema = z
   })
   .passthrough();
 
+/** Refund request payload for order fulfillment refund tools. */
 export const refundDataSchema = z
   .object({
     reasonForRefund: z.nativeEnum(ReasonForRefund),
@@ -449,6 +475,7 @@ export const refundDataSchema = z
   })
   .passthrough();
 
+/** Shipping fulfillment payload for tracking and shipped-line-item updates. */
 export const shippingFulfillmentSchema = z
   .object({
     lineItems: z.array(
@@ -469,6 +496,7 @@ export const shippingFulfillmentSchema = z
 // Marketing Schemas
 // ============================================================================
 
+/** Campaign criterion payload for marketing campaign targeting rules. */
 export const campaignCriterionSchema = z
   .object({
     autoSelectFutureInventory: z.boolean().optional(),
@@ -490,6 +518,7 @@ export const campaignCriterionSchema = z
   })
   .passthrough();
 
+/** Funding strategy payload for promoted listings campaign budgets. */
 export const fundingStrategySchema = z
   .object({
     bidPercentage: z.string().optional(),
@@ -497,6 +526,7 @@ export const fundingStrategySchema = z
   })
   .passthrough();
 
+/** Marketing campaign payload for campaign creation and updates. */
 export const campaignSchema = z
   .object({
     campaignName: z.string(),
@@ -512,6 +542,7 @@ export const campaignSchema = z
 // Communication Schemas
 // ============================================================================
 
+/** Member message payload for communication tools. */
 export const messageDataSchema = z
   .object({
     messageText: z.string(),
@@ -538,6 +569,7 @@ export const messageDataSchema = z
   })
   .passthrough();
 
+/** Buyer feedback payload for feedback submission tools. */
 export const feedbackDataSchema = z
   .object({
     orderLineItemId: z.string(),
@@ -546,6 +578,7 @@ export const feedbackDataSchema = z
   })
   .passthrough();
 
+/** Notification configuration payload for communication notification tools. */
 export const notificationConfigSchema = z
   .object({
     deliveryConfigs: z
@@ -561,6 +594,7 @@ export const notificationConfigSchema = z
   })
   .passthrough();
 
+/** Notification destination payload for webhook destination management. */
 export const notificationDestinationSchema = z
   .object({
     name: z.string(),
@@ -573,6 +607,7 @@ export const notificationDestinationSchema = z
 // Metadata/Compatibility Schemas
 // ============================================================================
 
+/** Compatibility specification payload for taxonomy fitment searches. */
 export const compatibilitySpecificationSchema = z
   .object({
     categoryTreeId: z.string().optional(),
@@ -590,6 +625,7 @@ export const compatibilitySpecificationSchema = z
   })
   .passthrough();
 
+/** Compatibility data payload for catalog and taxonomy compatibility operations. */
 export const compatibilityDataSchema = z
   .object({
     categoryTreeId: z.string().optional(),
@@ -601,6 +637,7 @@ export const compatibilityDataSchema = z
 // Other Schemas
 // ============================================================================
 
+/** Infringement payload used when reporting policy or rights violations. */
 export const infringementDataSchema = z
   .object({
     itemId: z.string(),
@@ -611,6 +648,7 @@ export const infringementDataSchema = z
   .passthrough();
 
 // VERO API schemas
+/** VeRO report payload for intellectual-property violation submissions. */
 export const veroReportDataSchema = z
   .object({
     items: z.array(
@@ -624,6 +662,7 @@ export const veroReportDataSchema = z
   })
   .passthrough();
 
+/** Shipping quote request payload for estimated shipping rates. */
 export const shippingQuoteRequestSchema = z
   .object({
     packageDetails: z
@@ -670,6 +709,7 @@ export const shippingQuoteRequestSchema = z
 // Bulk Operation Schemas
 // ============================================================================
 
+/** Bulk inventory item request payload for batch create and update operations. */
 export const bulkInventoryItemRequestSchema = z
   .object({
     requests: z.array(
@@ -686,6 +726,7 @@ export const bulkInventoryItemRequestSchema = z
   })
   .passthrough();
 
+/** Bulk price and quantity request payload for batch offer revisions. */
 export const bulkPriceQuantityRequestSchema = z
   .object({
     requests: z.array(
@@ -700,12 +741,14 @@ export const bulkPriceQuantityRequestSchema = z
   })
   .passthrough();
 
+/** Bulk offer request payload for batch offer creation. */
 export const bulkOfferRequestSchema = z
   .object({
     requests: z.array(offerSchema),
   })
   .passthrough();
 
+/** Bulk publish request payload for publishing multiple offers. */
 export const bulkPublishRequestSchema = z
   .object({
     requests: z.array(
@@ -718,6 +761,7 @@ export const bulkPublishRequestSchema = z
   })
   .passthrough();
 
+/** Bulk migration request payload for moving listings into inventory APIs. */
 export const bulkMigrateRequestSchema = z
   .object({
     requests: z.array(
@@ -730,6 +774,7 @@ export const bulkMigrateRequestSchema = z
   })
   .passthrough();
 
+/** Bulk sales tax request payload for account tax updates. */
 export const bulkSalesTaxRequestSchema = z
   .object({
     requests: z.array(
@@ -748,6 +793,7 @@ export const bulkSalesTaxRequestSchema = z
 // Helper: Offers for listing fees
 // ============================================================================
 
+/** Listing fees request payload for fee estimation tools. */
 export const listingFeesRequestSchema = z
   .object({
     offers: z.array(
@@ -767,6 +813,7 @@ export const listingFeesRequestSchema = z
 // Offer to interested buyers
 // ============================================================================
 
+/** Offer-to-buyers payload for sending seller offers to interested buyers. */
 export const offerToBuyersSchema = z
   .object({
     allowCounterOffer: z.boolean().optional(),

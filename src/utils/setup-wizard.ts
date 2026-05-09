@@ -3,6 +3,7 @@ import { spawn } from 'child_process';
 import prompts from 'prompts';
 
 type PromptValue = string | string[] | undefined;
+type MaybePromise<T> = T | Promise<T>;
 
 interface BaseStep {
   id: string;
@@ -16,17 +17,17 @@ interface BaseStep {
 
 interface SelectStep extends BaseStep {
   type: 'select';
-  options: Array<{ value: string; label: string }>;
+  options: { value: string; label: string }[];
 }
 
 interface TextStep extends BaseStep {
   type: 'text' | 'password';
-  validate?: Array<{ rule: 'required' }>;
+  validate?: { rule: 'required' }[];
 }
 
 interface MultiselectStep extends BaseStep {
   type: 'multiselect';
-  options: Array<{ value: string; label: string }>;
+  options: { value: string; label: string }[];
 }
 
 interface NoteStep extends BaseStep {
@@ -51,14 +52,22 @@ interface WizardContext {
 interface RunWizardOptions {
   renderer?: unknown;
   quiet?: boolean;
-  optionsProvider?: (stepId: string) => Promise<Array<{ value: string; label: string }> | undefined>;
-  asyncValidate?: (stepId: string, value: unknown) => Promise<string | null>;
-  onAfterStep?: (stepId: string, value: unknown, context: WizardContext) => Promise<void>;
+  optionsProvider?: (
+    stepId: string
+  ) => MaybePromise<{ value: string; label: string }[] | undefined>;
+  asyncValidate?: (stepId: string, value: unknown) => MaybePromise<string | null>;
+  onAfterStep?: (stepId: string, value: unknown, context: WizardContext) => MaybePromise<void>;
   onCancel?: () => void;
 }
 
+/**
+ * Placeholder renderer type kept for compatibility with clack-style setup code.
+ */
 export class ClackRenderer {}
 
+/**
+ * Preserves wizard configuration typing without transforming the config.
+ */
 export function defineWizard<T extends WizardConfig>(config: T): T {
   return config;
 }
@@ -91,7 +100,10 @@ function openUrl(url: string): Promise<void> {
   });
 }
 
-function getSelectDefaultIndex(options: Array<{ value: string; label: string }>, stepDefault?: string): number {
+function getSelectDefaultIndex(
+  options: { value: string; label: string }[],
+  stepDefault?: string
+): number {
   if (!stepDefault) return 0;
   const index = options.findIndex((option) => option.value === stepDefault);
   return index >= 0 ? index : 0;
@@ -99,8 +111,8 @@ function getSelectDefaultIndex(options: Array<{ value: string; label: string }>,
 
 async function promptStep(
   step: WizardStep,
-  optionsOverride: Array<{ value: string; label: string }> | undefined,
-  onCancel?: () => void,
+  optionsOverride: { value: string; label: string }[] | undefined,
+  onCancel?: () => void
 ): Promise<{ cancelled: boolean; value: PromptValue }> {
   if (step.type === 'note') {
     if (step.message) console.log(`\n  ${step.message}`);
@@ -126,10 +138,13 @@ async function promptStep(
         name: 'value',
         message: step.message,
         initial: getSelectDefaultIndex(promptOptions ?? [], step.default),
-        choices: (promptOptions ?? []).map((option) => ({ title: option.label, value: option.value })),
+        choices: (promptOptions ?? []).map((option) => ({
+          title: option.label,
+          value: option.value,
+        })),
         instructions: false,
       },
-      promptControl,
+      promptControl
     );
   } else if (step.type === 'multiselect') {
     response = await prompts(
@@ -137,10 +152,13 @@ async function promptStep(
         type: 'multiselect',
         name: 'value',
         message: step.message,
-        choices: (promptOptions ?? []).map((option) => ({ title: option.label, value: option.value })),
+        choices: (promptOptions ?? []).map((option) => ({
+          title: option.label,
+          value: option.value,
+        })),
         instructions: false,
       },
-      promptControl,
+      promptControl
     );
   } else {
     response = await prompts(
@@ -157,7 +175,7 @@ async function promptStep(
           return true;
         },
       },
-      promptControl,
+      promptControl
     );
   }
 
@@ -176,9 +194,12 @@ async function promptStep(
   return { cancelled: false, value: undefined };
 }
 
+/**
+ * Runs an interactive setup wizard and returns answers keyed by step id.
+ */
 export async function runWizard(
   config: WizardConfig,
-  runOptions: RunWizardOptions = {},
+  runOptions: RunWizardOptions = {}
 ): Promise<Record<string, unknown>> {
   const answers: Record<string, unknown> = {};
   const indexByStepId = new Map(config.steps.map((step, index) => [step.id, index]));

@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 import {
   feedbackDataSchema,
   notificationConfigSchema,
@@ -8,6 +7,7 @@ import {
 } from '../schemas.js';
 import type { OutputArgs, ToolDefinition } from '../tool-definitions.js';
 
+/** Communication API tools for member messages and seller feedback workflows. */
 export const communicationTools: ToolDefinition[] = [
   // Negotiation API
   {

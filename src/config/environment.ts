@@ -218,6 +218,9 @@ export function getEbayConfig(): EbayConfig {
   };
 }
 
+/**
+ * Get the eBay REST API base URL for the configured environment.
+ */
 export function getBaseUrl(environment: 'production' | 'sandbox'): string {
   return environment === 'production' ? 'https://api.ebay.com' : 'https://api.sandbox.ebay.com';
 }
@@ -261,6 +264,9 @@ export function getAuthUrl(
   state?: string,
   scopes?: string[]
 ): string;
+/**
+ * Resolve either the OAuth token endpoint or a full user-consent authorization URL.
+ */
 export function getAuthUrl(
   clientIdOrEnvironment: string,
   redirectUri?: string,
@@ -354,6 +360,9 @@ const iconUrl = (size: string): string => {
   return url.toString();
 };
 
+/**
+ * MCP server implementation metadata advertised to clients.
+ */
 export const mcpConfig: Implementation = {
   name: 'eBay API Model Context Protocol Server',
   version: getVersion(),

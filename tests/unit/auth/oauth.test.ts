@@ -7,13 +7,7 @@ import { mkdtempSync, promises as fsPromises, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import path from 'path';
 import { EbayOAuthClient } from '../../../src/auth/oauth.js';
-import type { EbayConfig, StoredTokenData } from '../../../src/types/ebay.js';
-import { getAuthUrl } from '../../../src/config/environment.js';
-import {
-  createMockTokens,
-  createExpiredAccessToken,
-  createFullyExpiredTokens,
-} from '../../helpers/mock-token-storage.js';
+import type { EbayConfig } from '../../../src/types/ebay.js';
 import { mockOAuthTokenEndpoint, cleanupMocks } from '../../helpers/mock-http.js';
 
 vi.mock('fs', async () => {

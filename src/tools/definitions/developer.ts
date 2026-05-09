@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { OutputArgs, ToolDefinition } from '../tool-definitions.js';
 
+/** Developer API tools for eBay application and keyset management. */
 export const developerTools: ToolDefinition[] = [
   {
     name: 'ebay_get_api_status',

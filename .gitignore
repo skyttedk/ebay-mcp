@@ -210,3 +210,6 @@ Taskfile.yml
 .*
 *.json
 *.md
+!docs/**/*.md
+!AGENTS.md
+!CLAUDE.md

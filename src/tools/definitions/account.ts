@@ -30,6 +30,7 @@ import {
 } from '@/schemas/account-management/account.js';
 import type { OutputArgs, ToolDefinition } from '../tool-definitions.js';
 
+/** Account Management API tools for seller policies, tax, KYC, privileges, and programs. */
 export const accountTools: ToolDefinition[] = [
   {
     name: 'ebay_get_custom_policies',

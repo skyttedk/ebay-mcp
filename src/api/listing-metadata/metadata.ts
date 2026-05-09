@@ -1,4 +1,10 @@
 import type { EbayApiClient } from '../client.js';
+import {
+  buildOptionalStringParams,
+  requireObject,
+  requireString,
+  withApiError,
+} from '../shared/request.js';
 
 /**
  * Metadata API - Marketplace policies and configurations
@@ -9,32 +15,42 @@ export class MetadataApi {
 
   constructor(private client: EbayApiClient) {}
 
+  private async getMarketplacePolicy(
+    endpoint: string,
+    marketplaceId: string,
+    failureMessage: string
+  ): Promise<unknown> {
+    requireString(marketplaceId, 'marketplaceId');
+    const path = `${this.basePath}/marketplace/${marketplaceId}/${endpoint}`;
+
+    return await withApiError(failureMessage, () => this.client.get(path));
+  }
+
+  private async getFilteredMarketplacePolicy(
+    endpoint: string,
+    marketplaceId: string,
+    failureMessage: string,
+    filter?: string
+  ): Promise<unknown> {
+    requireString(marketplaceId, 'marketplaceId');
+    const params = buildOptionalStringParams({ filter });
+    const path = `${this.basePath}/marketplace/${marketplaceId}/${endpoint}`;
+
+    return await withApiError(failureMessage, () => this.client.get(path, params));
+  }
+
   /**
    * Get automotive parts compatibility policies for a marketplace
    * Endpoint: GET /marketplace/{marketplace_id}/get_automotive_parts_compatibility_policies
    * @throws Error if marketplaceId is missing or invalid
    */
   async getAutomotivePartsCompatibilityPolicies(marketplaceId: string, filter?: string) {
-    if (!marketplaceId || typeof marketplaceId !== 'string') {
-      throw new Error('marketplaceId is required and must be a string');
-    }
-
-    if (filter !== undefined && typeof filter !== 'string') {
-      throw new Error('filter must be a string when provided');
-    }
-
-    try {
-      const params: Record<string, string> = {};
-      if (filter) params.filter = filter;
-      return await this.client.get(
-        `${this.basePath}/marketplace/${marketplaceId}/get_automotive_parts_compatibility_policies`,
-        params
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get automotive parts compatibility policies: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await this.getFilteredMarketplacePolicy(
+      'get_automotive_parts_compatibility_policies',
+      marketplaceId,
+      'Failed to get automotive parts compatibility policies',
+      filter
+    );
   }
 
   /**
@@ -43,26 +59,12 @@ export class MetadataApi {
    * @throws Error if marketplaceId is missing or invalid
    */
   async getCategoryPolicies(marketplaceId: string, filter?: string) {
-    if (!marketplaceId || typeof marketplaceId !== 'string') {
-      throw new Error('marketplaceId is required and must be a string');
-    }
-
-    if (filter !== undefined && typeof filter !== 'string') {
-      throw new Error('filter must be a string when provided');
-    }
-
-    try {
-      const params: Record<string, string> = {};
-      if (filter) params.filter = filter;
-      return await this.client.get(
-        `${this.basePath}/marketplace/${marketplaceId}/get_category_policies`,
-        params
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get category policies: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await this.getFilteredMarketplacePolicy(
+      'get_category_policies',
+      marketplaceId,
+      'Failed to get category policies',
+      filter
+    );
   }
 
   /**
@@ -71,26 +73,12 @@ export class MetadataApi {
    * @throws Error if marketplaceId is missing or invalid
    */
   async getExtendedProducerResponsibilityPolicies(marketplaceId: string, filter?: string) {
-    if (!marketplaceId || typeof marketplaceId !== 'string') {
-      throw new Error('marketplaceId is required and must be a string');
-    }
-
-    if (filter !== undefined && typeof filter !== 'string') {
-      throw new Error('filter must be a string when provided');
-    }
-
-    try {
-      const params: Record<string, string> = {};
-      if (filter) params.filter = filter;
-      return await this.client.get(
-        `${this.basePath}/marketplace/${marketplaceId}/get_extended_producer_responsibility_policies`,
-        params
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get extended producer responsibility policies: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await this.getFilteredMarketplacePolicy(
+      'get_extended_producer_responsibility_policies',
+      marketplaceId,
+      'Failed to get extended producer responsibility policies',
+      filter
+    );
   }
 
   /**
@@ -99,19 +87,11 @@ export class MetadataApi {
    * @throws Error if marketplaceId is missing or invalid
    */
   async getHazardousMaterialsLabels(marketplaceId: string) {
-    if (!marketplaceId || typeof marketplaceId !== 'string') {
-      throw new Error('marketplaceId is required and must be a string');
-    }
-
-    try {
-      return await this.client.get(
-        `${this.basePath}/marketplace/${marketplaceId}/get_hazardous_materials_labels`
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get hazardous materials labels: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await this.getMarketplacePolicy(
+      'get_hazardous_materials_labels',
+      marketplaceId,
+      'Failed to get hazardous materials labels'
+    );
   }
 
   /**
@@ -120,26 +100,12 @@ export class MetadataApi {
    * @throws Error if marketplaceId is missing or invalid
    */
   async getItemConditionPolicies(marketplaceId: string, filter?: string) {
-    if (!marketplaceId || typeof marketplaceId !== 'string') {
-      throw new Error('marketplaceId is required and must be a string');
-    }
-
-    if (filter !== undefined && typeof filter !== 'string') {
-      throw new Error('filter must be a string when provided');
-    }
-
-    try {
-      const params: Record<string, string> = {};
-      if (filter) params.filter = filter;
-      return await this.client.get(
-        `${this.basePath}/marketplace/${marketplaceId}/get_item_condition_policies`,
-        params
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get item condition policies: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await this.getFilteredMarketplacePolicy(
+      'get_item_condition_policies',
+      marketplaceId,
+      'Failed to get item condition policies',
+      filter
+    );
   }
 
   /**
@@ -148,26 +114,12 @@ export class MetadataApi {
    * @throws Error if marketplaceId is missing or invalid
    */
   async getListingStructurePolicies(marketplaceId: string, filter?: string) {
-    if (!marketplaceId || typeof marketplaceId !== 'string') {
-      throw new Error('marketplaceId is required and must be a string');
-    }
-
-    if (filter !== undefined && typeof filter !== 'string') {
-      throw new Error('filter must be a string when provided');
-    }
-
-    try {
-      const params: Record<string, string> = {};
-      if (filter) params.filter = filter;
-      return await this.client.get(
-        `${this.basePath}/marketplace/${marketplaceId}/get_listing_structure_policies`,
-        params
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get listing structure policies: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await this.getFilteredMarketplacePolicy(
+      'get_listing_structure_policies',
+      marketplaceId,
+      'Failed to get listing structure policies',
+      filter
+    );
   }
 
   /**
@@ -176,26 +128,12 @@ export class MetadataApi {
    * @throws Error if marketplaceId is missing or invalid
    */
   async getNegotiatedPricePolicies(marketplaceId: string, filter?: string) {
-    if (!marketplaceId || typeof marketplaceId !== 'string') {
-      throw new Error('marketplaceId is required and must be a string');
-    }
-
-    if (filter !== undefined && typeof filter !== 'string') {
-      throw new Error('filter must be a string when provided');
-    }
-
-    try {
-      const params: Record<string, string> = {};
-      if (filter) params.filter = filter;
-      return await this.client.get(
-        `${this.basePath}/marketplace/${marketplaceId}/get_negotiated_price_policies`,
-        params
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get negotiated price policies: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await this.getFilteredMarketplacePolicy(
+      'get_negotiated_price_policies',
+      marketplaceId,
+      'Failed to get negotiated price policies',
+      filter
+    );
   }
 
   /**
@@ -204,19 +142,11 @@ export class MetadataApi {
    * @throws Error if marketplaceId is missing or invalid
    */
   async getProductSafetyLabels(marketplaceId: string) {
-    if (!marketplaceId || typeof marketplaceId !== 'string') {
-      throw new Error('marketplaceId is required and must be a string');
-    }
-
-    try {
-      return await this.client.get(
-        `${this.basePath}/marketplace/${marketplaceId}/get_product_safety_labels`
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get product safety labels: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await this.getMarketplacePolicy(
+      'get_product_safety_labels',
+      marketplaceId,
+      'Failed to get product safety labels'
+    );
   }
 
   /**
@@ -225,26 +155,12 @@ export class MetadataApi {
    * @throws Error if marketplaceId is missing or invalid
    */
   async getRegulatoryPolicies(marketplaceId: string, filter?: string) {
-    if (!marketplaceId || typeof marketplaceId !== 'string') {
-      throw new Error('marketplaceId is required and must be a string');
-    }
-
-    if (filter !== undefined && typeof filter !== 'string') {
-      throw new Error('filter must be a string when provided');
-    }
-
-    try {
-      const params: Record<string, string> = {};
-      if (filter) params.filter = filter;
-      return await this.client.get(
-        `${this.basePath}/marketplace/${marketplaceId}/get_regulatory_policies`,
-        params
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get regulatory policies: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await this.getFilteredMarketplacePolicy(
+      'get_regulatory_policies',
+      marketplaceId,
+      'Failed to get regulatory policies',
+      filter
+    );
   }
 
   /**
@@ -253,26 +169,12 @@ export class MetadataApi {
    * @throws Error if marketplaceId is missing or invalid
    */
   async getReturnPolicies(marketplaceId: string, filter?: string) {
-    if (!marketplaceId || typeof marketplaceId !== 'string') {
-      throw new Error('marketplaceId is required and must be a string');
-    }
-
-    if (filter !== undefined && typeof filter !== 'string') {
-      throw new Error('filter must be a string when provided');
-    }
-
-    try {
-      const params: Record<string, string> = {};
-      if (filter) params.filter = filter;
-      return await this.client.get(
-        `${this.basePath}/marketplace/${marketplaceId}/get_return_policies`,
-        params
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get return policies: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await this.getFilteredMarketplacePolicy(
+      'get_return_policies',
+      marketplaceId,
+      'Failed to get return policies',
+      filter
+    );
   }
 
   /**
@@ -281,26 +183,12 @@ export class MetadataApi {
    * @throws Error if marketplaceId is missing or invalid
    */
   async getShippingCostTypePolicies(marketplaceId: string, filter?: string) {
-    if (!marketplaceId || typeof marketplaceId !== 'string') {
-      throw new Error('marketplaceId is required and must be a string');
-    }
-
-    if (filter !== undefined && typeof filter !== 'string') {
-      throw new Error('filter must be a string when provided');
-    }
-
-    try {
-      const params: Record<string, string> = {};
-      if (filter) params.filter = filter;
-      return await this.client.get(
-        `${this.basePath}/marketplace/${marketplaceId}/get_shipping_cost_type_policies`,
-        params
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get shipping cost type policies: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await this.getFilteredMarketplacePolicy(
+      'get_shipping_cost_type_policies',
+      marketplaceId,
+      'Failed to get shipping cost type policies',
+      filter
+    );
   }
 
   /**
@@ -309,26 +197,12 @@ export class MetadataApi {
    * @throws Error if marketplaceId is missing or invalid
    */
   async getClassifiedAdPolicies(marketplaceId: string, filter?: string) {
-    if (!marketplaceId || typeof marketplaceId !== 'string') {
-      throw new Error('marketplaceId is required and must be a string');
-    }
-
-    if (filter !== undefined && typeof filter !== 'string') {
-      throw new Error('filter must be a string when provided');
-    }
-
-    try {
-      const params: Record<string, string> = {};
-      if (filter) params.filter = filter;
-      return await this.client.get(
-        `${this.basePath}/marketplace/${marketplaceId}/get_classified_ad_policies`,
-        params
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get classified ad policies: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await this.getFilteredMarketplacePolicy(
+      'get_classified_ad_policies',
+      marketplaceId,
+      'Failed to get classified ad policies',
+      filter
+    );
   }
 
   /**
@@ -337,17 +211,11 @@ export class MetadataApi {
    * @throws Error if marketplaceId is missing or invalid
    */
   async getCurrencies(marketplaceId: string) {
-    if (!marketplaceId || typeof marketplaceId !== 'string') {
-      throw new Error('marketplaceId is required and must be a string');
-    }
-
-    try {
-      return await this.client.get(`${this.basePath}/marketplace/${marketplaceId}/get_currencies`);
-    } catch (error) {
-      throw new Error(
-        `Failed to get currencies: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await this.getMarketplacePolicy(
+      'get_currencies',
+      marketplaceId,
+      'Failed to get currencies'
+    );
   }
 
   /**
@@ -356,26 +224,12 @@ export class MetadataApi {
    * @throws Error if marketplaceId is missing or invalid
    */
   async getListingTypePolicies(marketplaceId: string, filter?: string) {
-    if (!marketplaceId || typeof marketplaceId !== 'string') {
-      throw new Error('marketplaceId is required and must be a string');
-    }
-
-    if (filter !== undefined && typeof filter !== 'string') {
-      throw new Error('filter must be a string when provided');
-    }
-
-    try {
-      const params: Record<string, string> = {};
-      if (filter) params.filter = filter;
-      return await this.client.get(
-        `${this.basePath}/marketplace/${marketplaceId}/get_listing_type_policies`,
-        params
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get listing type policies: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await this.getFilteredMarketplacePolicy(
+      'get_listing_type_policies',
+      marketplaceId,
+      'Failed to get listing type policies',
+      filter
+    );
   }
 
   /**
@@ -384,26 +238,12 @@ export class MetadataApi {
    * @throws Error if marketplaceId is missing or invalid
    */
   async getMotorsListingPolicies(marketplaceId: string, filter?: string) {
-    if (!marketplaceId || typeof marketplaceId !== 'string') {
-      throw new Error('marketplaceId is required and must be a string');
-    }
-
-    if (filter !== undefined && typeof filter !== 'string') {
-      throw new Error('filter must be a string when provided');
-    }
-
-    try {
-      const params: Record<string, string> = {};
-      if (filter) params.filter = filter;
-      return await this.client.get(
-        `${this.basePath}/marketplace/${marketplaceId}/get_motors_listing_policies`,
-        params
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get motors listing policies: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await this.getFilteredMarketplacePolicy(
+      'get_motors_listing_policies',
+      marketplaceId,
+      'Failed to get motors listing policies',
+      filter
+    );
   }
 
   /**
@@ -412,26 +252,12 @@ export class MetadataApi {
    * @throws Error if marketplaceId is missing or invalid
    */
   async getShippingPolicies(marketplaceId: string, filter?: string) {
-    if (!marketplaceId || typeof marketplaceId !== 'string') {
-      throw new Error('marketplaceId is required and must be a string');
-    }
-
-    if (filter !== undefined && typeof filter !== 'string') {
-      throw new Error('filter must be a string when provided');
-    }
-
-    try {
-      const params: Record<string, string> = {};
-      if (filter) params.filter = filter;
-      return await this.client.get(
-        `${this.basePath}/marketplace/${marketplaceId}/get_shipping_policies`,
-        params
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get shipping policies: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await this.getFilteredMarketplacePolicy(
+      'get_shipping_policies',
+      marketplaceId,
+      'Failed to get shipping policies',
+      filter
+    );
   }
 
   /**
@@ -440,26 +266,12 @@ export class MetadataApi {
    * @throws Error if marketplaceId is missing or invalid
    */
   async getSiteVisibilityPolicies(marketplaceId: string, filter?: string) {
-    if (!marketplaceId || typeof marketplaceId !== 'string') {
-      throw new Error('marketplaceId is required and must be a string');
-    }
-
-    if (filter !== undefined && typeof filter !== 'string') {
-      throw new Error('filter must be a string when provided');
-    }
-
-    try {
-      const params: Record<string, string> = {};
-      if (filter) params.filter = filter;
-      return await this.client.get(
-        `${this.basePath}/marketplace/${marketplaceId}/get_site_visibility_policies`,
-        params
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get site visibility policies: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await this.getFilteredMarketplacePolicy(
+      'get_site_visibility_policies',
+      marketplaceId,
+      'Failed to get site visibility policies',
+      filter
+    );
   }
 
   /**
@@ -468,20 +280,14 @@ export class MetadataApi {
    * @throws Error if specification is missing or invalid
    */
   async getCompatibilitiesBySpecification(specification: Record<string, unknown>) {
-    if (!specification || typeof specification !== 'object') {
-      throw new Error('specification is required and must be an object');
-    }
+    requireObject(specification, 'specification');
 
-    try {
-      return await this.client.post(
+    return await withApiError('Failed to get compatibilities by specification', () =>
+      this.client.post(
         `${this.basePath}/compatibilities/get_compatibilities_by_specification`,
         specification
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get compatibilities by specification: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+      )
+    );
   }
 
   /**
@@ -490,20 +296,11 @@ export class MetadataApi {
    * @throws Error if request data is missing or invalid
    */
   async getCompatibilityPropertyNames(data: Record<string, unknown>) {
-    if (!data || typeof data !== 'object') {
-      throw new Error('data is required and must be an object');
-    }
+    requireObject(data, 'data');
 
-    try {
-      return await this.client.post(
-        `${this.basePath}/compatibilities/get_compatibility_property_names`,
-        data
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get compatibility property names: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await withApiError('Failed to get compatibility property names', () =>
+      this.client.post(`${this.basePath}/compatibilities/get_compatibility_property_names`, data)
+    );
   }
 
   /**
@@ -512,20 +309,11 @@ export class MetadataApi {
    * @throws Error if request data is missing or invalid
    */
   async getCompatibilityPropertyValues(data: Record<string, unknown>) {
-    if (!data || typeof data !== 'object') {
-      throw new Error('data is required and must be an object');
-    }
+    requireObject(data, 'data');
 
-    try {
-      return await this.client.post(
-        `${this.basePath}/compatibilities/get_compatibility_property_values`,
-        data
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get compatibility property values: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await withApiError('Failed to get compatibility property values', () =>
+      this.client.post(`${this.basePath}/compatibilities/get_compatibility_property_values`, data)
+    );
   }
 
   /**
@@ -534,20 +322,14 @@ export class MetadataApi {
    * @throws Error if request data is missing or invalid
    */
   async getMultiCompatibilityPropertyValues(data: Record<string, unknown>) {
-    if (!data || typeof data !== 'object') {
-      throw new Error('data is required and must be an object');
-    }
+    requireObject(data, 'data');
 
-    try {
-      return await this.client.post(
+    return await withApiError('Failed to get multi compatibility property values', () =>
+      this.client.post(
         `${this.basePath}/compatibilities/get_multi_compatibility_property_values`,
         data
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get multi compatibility property values: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+      )
+    );
   }
 
   /**
@@ -556,20 +338,11 @@ export class MetadataApi {
    * @throws Error if request data is missing or invalid
    */
   async getProductCompatibilities(data: Record<string, unknown>) {
-    if (!data || typeof data !== 'object') {
-      throw new Error('data is required and must be an object');
-    }
+    requireObject(data, 'data');
 
-    try {
-      return await this.client.post(
-        `${this.basePath}/compatibilities/get_product_compatibilities`,
-        data
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get product compatibilities: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await withApiError('Failed to get product compatibilities', () =>
+      this.client.post(`${this.basePath}/compatibilities/get_product_compatibilities`, data)
+    );
   }
 
   /**
@@ -578,19 +351,11 @@ export class MetadataApi {
    * @throws Error if countryCode is missing or invalid
    */
   async getSalesTaxJurisdictions(countryCode: string) {
-    if (!countryCode || typeof countryCode !== 'string') {
-      throw new Error('countryCode is required and must be a string');
-    }
+    requireString(countryCode, 'countryCode');
 
-    try {
-      return await this.client.get(
-        `${this.basePath}/country/${countryCode}/sales_tax_jurisdiction`
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get sales tax jurisdictions: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await withApiError('Failed to get sales tax jurisdictions', () =>
+      this.client.get(`${this.basePath}/country/${countryCode}/sales_tax_jurisdiction`)
+    );
   }
 
   /**
@@ -599,25 +364,11 @@ export class MetadataApi {
    * @throws Error if marketplaceId is missing or invalid
    */
   async getProductCompliancePolicies(marketplaceId: string, filter?: string) {
-    if (!marketplaceId || typeof marketplaceId !== 'string') {
-      throw new Error('marketplaceId is required and must be a string');
-    }
-
-    if (filter !== undefined && typeof filter !== 'string') {
-      throw new Error('filter must be a string when provided');
-    }
-
-    try {
-      const params: Record<string, string> = {};
-      if (filter) params.filter = filter;
-      return await this.client.get(
-        `${this.basePath}/marketplace/${marketplaceId}/get_product_compliance_policies`,
-        params
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get product compliance policies: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await this.getFilteredMarketplacePolicy(
+      'get_product_compliance_policies',
+      marketplaceId,
+      'Failed to get product compliance policies',
+      filter
+    );
   }
 }

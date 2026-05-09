@@ -40,7 +40,7 @@ export {
   tradingTools,
 };
 
-// Export all tools as a single array
+/** Combined tool definition catalog used by registry validation and exports. */
 export const allTools = [
   ...tokenManagementTools,
   ...accountTools,
@@ -56,5 +56,5 @@ export const allTools = [
   ...tradingTools,
 ];
 
-// Export types
+/** Re-exported tool definition type for category catalog consumers. */
 export type { ToolDefinition } from '../tool-definitions.js';

@@ -1,40 +1,19 @@
-export function buildValidatedPaginatedParams(
-  filter?: string,
-  limit?: number,
-  offset?: number
-): Record<string, string | number> {
-  const params: Record<string, string | number> = {};
+import { buildValidatedPaginatedParams, type QueryParams } from './request.js';
 
-  if (filter !== undefined) {
-    if (typeof filter !== 'string') {
-      throw new Error('filter must be a string when provided');
-    }
-    params.filter = filter;
-  }
+/**
+ * Re-export the strict paginated query builder used by newer REST helpers.
+ */
+export { buildValidatedPaginatedParams };
 
-  if (limit !== undefined) {
-    if (typeof limit !== 'number' || limit < 1) {
-      throw new Error('limit must be a positive number when provided');
-    }
-    params.limit = limit;
-  }
-
-  if (offset !== undefined) {
-    if (typeof offset !== 'number' || offset < 0) {
-      throw new Error('offset must be a non-negative number when provided');
-    }
-    params.offset = offset;
-  }
-
-  return params;
-}
-
+/**
+ * Build legacy paginated query parameters, omitting falsy values.
+ */
 export function buildTruthyPaginatedParams(
   filter?: string,
   limit?: number,
   offset?: number
-): Record<string, string | number> {
-  const params: Record<string, string | number> = {};
+): QueryParams {
+  const params: QueryParams = {};
 
   if (filter) {
     params.filter = filter;

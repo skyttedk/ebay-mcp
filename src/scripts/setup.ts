@@ -118,15 +118,24 @@ async function exchangeAuthorizationCode(
   clientId: string,
   clientSecret: string,
   redirectUri: string,
-  environment: 'sandbox' | 'production',
+  environment: 'sandbox' | 'production'
 ): Promise<TokenExchangeResult> {
   const baseUrl =
     environment === 'production' ? 'https://api.ebay.com' : 'https://api.sandbox.ebay.com';
   const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
   const response = await axios.post(
     `${baseUrl}/identity/v1/oauth2/token`,
-    new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: redirectUri }).toString(),
-    { headers: { Authorization: `Basic ${credentials}`, 'Content-Type': 'application/x-www-form-urlencoded' } },
+    new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: redirectUri,
+    }).toString(),
+    {
+      headers: {
+        Authorization: `Basic ${credentials}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    }
   );
   return {
     accessToken: response.data.access_token,
@@ -139,7 +148,7 @@ async function exchangeAuthorizationCode(
 async function getAppAccessToken(
   clientId: string,
   clientSecret: string,
-  environment: 'sandbox' | 'production',
+  environment: 'sandbox' | 'production'
 ): Promise<string> {
   const baseUrl =
     environment === 'production' ? 'https://api.ebay.com' : 'https://api.sandbox.ebay.com';
@@ -150,7 +159,12 @@ async function getAppAccessToken(
       grant_type: 'client_credentials',
       scope: 'https://api.ebay.com/oauth/api_scope',
     }).toString(),
-    { headers: { Authorization: `Basic ${credentials}`, 'Content-Type': 'application/x-www-form-urlencoded' } },
+    {
+      headers: {
+        Authorization: `Basic ${credentials}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    }
   );
   return response.data.access_token;
 }
@@ -159,7 +173,7 @@ async function verifyRefreshToken(
   refreshToken: string,
   clientId: string,
   clientSecret: string,
-  environment: 'sandbox' | 'production',
+  environment: 'sandbox' | 'production'
 ): Promise<{ accessToken: string; userInfo: EbayUserInfo }> {
   const baseUrl =
     environment === 'production' ? 'https://api.ebay.com' : 'https://api.sandbox.ebay.com';
@@ -172,7 +186,12 @@ async function verifyRefreshToken(
       scope:
         'https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.inventory',
     }).toString(),
-    { headers: { Authorization: `Basic ${credentials}`, 'Content-Type': 'application/x-www-form-urlencoded' } },
+    {
+      headers: {
+        Authorization: `Basic ${credentials}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    }
   );
   const accessToken = tokenResponse.data.access_token;
   const identityBase =
@@ -185,7 +204,7 @@ async function verifyRefreshToken(
 
 async function fetchEbayUserInfo(
   accessToken: string,
-  environment: 'sandbox' | 'production',
+  environment: 'sandbox' | 'production'
 ): Promise<EbayUserInfo> {
   const identityBase =
     environment === 'production' ? 'https://apiz.ebay.com' : 'https://apiz.sandbox.ebay.com';
@@ -227,7 +246,7 @@ function isClaudeDesktopInstalled(): boolean {
  */
 function updateClaudeDesktopConfig(
   envConfig: Record<string, string>,
-  environment: string,
+  environment: string
 ): { success: boolean; configPath: string; error?: string; details?: string } {
   const configPath = getClaudeDesktopConfigPath();
   if (!existsSync(dirname(configPath)))
@@ -261,7 +280,7 @@ function updateClaudeDesktopConfig(
       envVars.EBAY_USER_ACCESS_TOKEN = envConfig.EBAY_USER_ACCESS_TOKEN;
     if (envConfig.EBAY_APP_ACCESS_TOKEN?.startsWith('v^'))
       envVars.EBAY_APP_ACCESS_TOKEN = envConfig.EBAY_APP_ACCESS_TOKEN;
-    mcpServers['ebay'] = {
+    mcpServers.ebay = {
       command: 'npx',
       args: ['--yes', '--quiet', 'ebay-mcp'],
       env: { ...envVars, NODE_NO_WARNINGS: '1', NPM_CONFIG_UPDATE_NOTIFIER: 'false' },
@@ -277,7 +296,11 @@ function updateClaudeDesktopConfig(
           : `Added ebay server (${Object.keys(mcpServers).length} total)`,
     };
   } catch (error) {
-    return { success: false, configPath, error: error instanceof Error ? error.message : 'Unknown' };
+    return {
+      success: false,
+      configPath,
+      error: error instanceof Error ? error.message : 'Unknown',
+    };
   }
 }
 
@@ -319,7 +342,7 @@ EBAY_USER_REFRESH_TOKEN=${envConfig.EBAY_USER_REFRESH_TOKEN || ''}
 EBAY_USER_ACCESS_TOKEN=${envConfig.EBAY_USER_ACCESS_TOKEN || ''}
 EBAY_APP_ACCESS_TOKEN=${envConfig.EBAY_APP_ACCESS_TOKEN || ''}
 `,
-    'utf-8',
+    'utf-8'
   );
 }
 
@@ -342,7 +365,9 @@ function showError(message: string): void {
 function showBox(title: string, content: string[]): void {
   const width = 54;
   const line = '─'.repeat(width);
-  console.log(`  ${ui.dim('┌─')} ${ui.bold(title)} ${ui.dim('─'.repeat(width - title.length - 2))}┐`);
+  console.log(
+    `  ${ui.dim('┌─')} ${ui.bold(title)} ${ui.dim('─'.repeat(width - title.length - 2))}┐`
+  );
   for (const item of content) {
     const displayItem = item.length > width - 2 ? item.slice(0, width - 5) + '...' : item;
     console.log(`  ${ui.dim('│')} ${displayItem.padEnd(width)}${ui.dim('│')}`);
@@ -352,7 +377,7 @@ function showBox(title: string, content: string[]): void {
 
 function showSetupProgress(message: string): () => void {
   console.log(`  ⠋  ${message}...`);
-  return () => {};
+  return () => undefined;
 }
 
 function displayUserInfo(userInfo: EbayUserInfo): void {
@@ -362,10 +387,14 @@ function displayUserInfo(userInfo: EbayUserInfo): void {
       : userInfo.businessAccount?.name || 'N/A';
   const email = userInfo.individualAccount?.email || userInfo.businessAccount?.email || 'N/A';
   const marketplaceMap: Record<string, string> = {
-    EBAY_US: 'eBay United States', EBAY_GB: 'eBay United Kingdom',
-    EBAY_DE: 'eBay Germany', EBAY_AU: 'eBay Australia',
-    EBAY_CA: 'eBay Canada', EBAY_FR: 'eBay France',
-    EBAY_IT: 'eBay Italy', EBAY_ES: 'eBay Spain',
+    EBAY_US: 'eBay United States',
+    EBAY_GB: 'eBay United Kingdom',
+    EBAY_DE: 'eBay Germany',
+    EBAY_AU: 'eBay Australia',
+    EBAY_CA: 'eBay Canada',
+    EBAY_FR: 'eBay France',
+    EBAY_IT: 'eBay Italy',
+    EBAY_ES: 'eBay Spain',
   };
   const marketplace =
     marketplaceMap[userInfo.registrationMarketplaceId || ''] ||
@@ -383,6 +412,9 @@ function displayUserInfo(userInfo: EbayUserInfo): void {
 
 // ─── Setup wizard ─────────────────────────────────────────────────────────────
 
+/**
+ * Runs the interactive eBay MCP setup wizard from the script entry point.
+ */
 export async function runSetup(): Promise<void> {
   const existingConfig = loadExistingConfig(PROJECT_ROOT);
   const detectedClients = detectLLMClients();
@@ -564,7 +596,7 @@ export async function runSetup(): Promise<void> {
     renderer: new ClackRenderer(),
     quiet: true,
 
-    optionsProvider: async (stepId) => {
+    optionsProvider: (stepId) => {
       if (stepId === 'oauth-method') {
         const hasToken = existingConfig.EBAY_USER_REFRESH_TOKEN?.startsWith('v^1.1#');
         if (hasToken) {
@@ -580,9 +612,11 @@ export async function runSetup(): Promise<void> {
       return undefined;
     },
 
-    asyncValidate: async (stepId, value) => {
+    asyncValidate: (stepId, value) => {
       if (stepId === 'oauth-token') {
-        const clean = String(value).trim().replace(/^["']|["']$/g, '');
+        const clean = String(value)
+          .trim()
+          .replace(/^["']|["']$/g, '');
         if (!clean) return 'Token is required';
         if (!clean.startsWith('v^1.1#')) return 'Token should start with v^1.1#';
       }
@@ -596,9 +630,10 @@ export async function runSetup(): Promise<void> {
 
     onAfterStep: async (stepId, value, context) => {
       const a = context.answers;
-      const environment = (a['environment'] as 'sandbox' | 'production') || 'sandbox';
+      const environment = (a.environment as 'sandbox' | 'production') || 'sandbox';
       const clientId = (a['client-id'] as string) || existingConfig.EBAY_CLIENT_ID || '';
-      const clientSecret = (a['client-secret'] as string) || existingConfig.EBAY_CLIENT_SECRET || '';
+      const clientSecret =
+        (a['client-secret'] as string) || existingConfig.EBAY_CLIENT_SECRET || '';
       const redirectUri = (a['redirect-uri'] as string) || existingConfig.EBAY_REDIRECT_URI || '';
 
       if (stepId === 'environment' && args.quick) {
@@ -615,7 +650,9 @@ export async function runSetup(): Promise<void> {
           try {
             const { accessToken, userInfo } = await verifyRefreshToken(
               existingConfig.EBAY_USER_REFRESH_TOKEN,
-              clientId, clientSecret, environment,
+              clientId,
+              clientSecret,
+              environment
             );
             stopSpinner();
             showSuccess('Refresh token verified!');
@@ -630,17 +667,26 @@ export async function runSetup(): Promise<void> {
             }
             if (isClaudeDesktopInstalled()) {
               const r = updateClaudeDesktopConfig(
-                { ...a as Record<string, string>, EBAY_USER_REFRESH_TOKEN: tokens.refreshToken ?? '' },
-                environment,
+                {
+                  ...(a as Record<string, string>),
+                  EBAY_USER_REFRESH_TOKEN: tokens.refreshToken ?? '',
+                },
+                environment
               );
-              if (r.success) { showSuccess('Claude Desktop config updated.'); if (r.details) showInfo(r.details); }
-              else showWarning(`Could not update Claude Desktop: ${r.error}`);
+              if (r.success) {
+                showSuccess('Claude Desktop config updated.');
+                if (r.details) showInfo(r.details);
+              } else showWarning(`Could not update Claude Desktop: ${r.error}`);
             }
           } catch (error) {
             stopSpinner();
             const msg = axios.isAxiosError(error)
-              ? error.response?.data?.error_description || error.response?.data?.errors?.[0]?.message || error.message
-              : error instanceof Error ? error.message : 'Unknown error';
+              ? error.response?.data?.error_description ||
+                error.response?.data?.errors?.[0]?.message ||
+                error.message
+              : error instanceof Error
+                ? error.message
+                : 'Unknown error';
             showError(`Token verification failed: ${msg}`);
             if (msg.toLowerCase().includes('access denied'))
               showWarning('Token may be missing required OAuth scopes.');
@@ -649,10 +695,8 @@ export async function runSetup(): Promise<void> {
             tokens.refreshToken = existingConfig.EBAY_USER_REFRESH_TOKEN;
           }
           context.setNextStep(finalStepId);
-
         } else if (method === 'existing') {
           context.setNextStep('oauth-token');
-
         } else if (method === 'manual') {
           const authUrl = getOAuthAuthorizationUrl(clientId, redirectUri, environment);
           context.showNote('OAuth Authorization URL', authUrl);
@@ -662,10 +706,8 @@ export async function runSetup(): Promise<void> {
           showInfo('3. Copy the redirect URL or the code parameter, then paste it below');
           console.log('');
           context.setNextStep('oauth-code');
-
         } else if (method === 'code') {
           context.setNextStep('oauth-code');
-
         } else if (method === 'skip') {
           showWarning("Skipping OAuth — you'll be limited to 1,000 requests/day.");
           context.setNextStep(finalStepId);
@@ -674,12 +716,17 @@ export async function runSetup(): Promise<void> {
 
       // ── oauth-token: verify pasted refresh token ───────────────────────────
       if (stepId === 'oauth-token') {
-        const rawToken = String(value).trim().replace(/^["']|["']$/g, '');
+        const rawToken = String(value)
+          .trim()
+          .replace(/^["']|["']$/g, '');
         tokens.refreshToken = rawToken;
         const stopSpinner = showSetupProgress('Verifying refresh token...');
         try {
           const { accessToken, userInfo } = await verifyRefreshToken(
-            rawToken, clientId, clientSecret, environment,
+            rawToken,
+            clientId,
+            clientSecret,
+            environment
           );
           stopSpinner();
           showSuccess('Refresh token verified!');
@@ -693,17 +740,23 @@ export async function runSetup(): Promise<void> {
           }
           if (isClaudeDesktopInstalled()) {
             const r = updateClaudeDesktopConfig(
-              { ...a as Record<string, string>, EBAY_USER_REFRESH_TOKEN: rawToken },
-              environment,
+              { ...(a as Record<string, string>), EBAY_USER_REFRESH_TOKEN: rawToken },
+              environment
             );
-            if (r.success) { showSuccess('Claude Desktop config updated.'); if (r.details) showInfo(r.details); }
-            else showWarning(`Could not update Claude Desktop: ${r.error}`);
+            if (r.success) {
+              showSuccess('Claude Desktop config updated.');
+              if (r.details) showInfo(r.details);
+            } else showWarning(`Could not update Claude Desktop: ${r.error}`);
           }
         } catch (error) {
           stopSpinner();
           const msg = axios.isAxiosError(error)
-            ? error.response?.data?.error_description || error.response?.data?.errors?.[0]?.message || error.message
-            : error instanceof Error ? error.message : 'Unknown error';
+            ? error.response?.data?.error_description ||
+              error.response?.data?.errors?.[0]?.message ||
+              error.message
+            : error instanceof Error
+              ? error.message
+              : 'Unknown error';
           showError(`Token verification failed: ${msg}`);
           showWarning("Token saved anyway — you may need to re-authenticate if it doesn't work.");
         }
@@ -717,7 +770,11 @@ export async function runSetup(): Promise<void> {
         const stopSpinner = showSetupProgress('Exchanging authorization code for tokens...');
         try {
           const result = await exchangeAuthorizationCode(
-            authCode, clientId, clientSecret, redirectUri, environment,
+            authCode,
+            clientId,
+            clientSecret,
+            redirectUri,
+            environment
           );
           stopSpinner();
           showSuccess('Authorization code exchanged successfully!');
@@ -730,10 +787,14 @@ export async function runSetup(): Promise<void> {
           } catch (userError) {
             const userMsg = axios.isAxiosError(userError)
               ? userError.response?.data?.errors?.[0]?.message || userError.message
-              : userError instanceof Error ? userError.message : 'Unknown';
+              : userError instanceof Error
+                ? userError.message
+                : 'Unknown';
             showWarning(`Could not fetch account info: ${userMsg}`);
             if (userMsg.toLowerCase().includes('access denied'))
-              showInfo('Normal if RuName lacks commerce.identity.readonly scope — tokens are valid.');
+              showInfo(
+                'Normal if RuName lacks commerce.identity.readonly scope — tokens are valid.'
+              );
           }
           try {
             tokens.appAccessToken = await getAppAccessToken(clientId, clientSecret, environment);
@@ -742,24 +803,30 @@ export async function runSetup(): Promise<void> {
             showWarning('Could not obtain app access token (user tokens still work).');
           }
           showInfo(`Access token expires in: ${Math.floor(result.expiresIn / 60)} minutes`);
-          showInfo(`Refresh token expires in: ${Math.floor(result.refreshTokenExpiresIn / 60 / 60 / 24)} days`);
+          showInfo(
+            `Refresh token expires in: ${Math.floor(result.refreshTokenExpiresIn / 60 / 60 / 24)} days`
+          );
           if (isClaudeDesktopInstalled()) {
             const r = updateClaudeDesktopConfig(
               {
-                ...a as Record<string, string>,
+                ...(a as Record<string, string>),
                 EBAY_USER_REFRESH_TOKEN: tokens.refreshToken ?? '',
                 EBAY_USER_ACCESS_TOKEN: tokens.accessToken ?? '',
               },
-              environment,
+              environment
             );
-            if (r.success) { showSuccess('Claude Desktop config updated.'); if (r.details) showInfo(r.details); }
-            else showWarning(`Could not update Claude Desktop: ${r.error}`);
+            if (r.success) {
+              showSuccess('Claude Desktop config updated.');
+              if (r.details) showInfo(r.details);
+            } else showWarning(`Could not update Claude Desktop: ${r.error}`);
           }
         } catch (error) {
           stopSpinner();
           const msg = axios.isAxiosError(error)
             ? error.response?.data?.error_description || error.message
-            : error instanceof Error ? error.message : 'Unknown error';
+            : error instanceof Error
+              ? error.message
+              : 'Unknown error';
           showError(`Failed to exchange code: ${msg}`);
           console.log('  Common issues:');
           console.log('  • Authorization code expired (codes are valid for ~5 minutes)');
@@ -776,7 +843,9 @@ export async function runSetup(): Promise<void> {
           const client = detectedClients.find((c) => c.name === name);
           if (!client) continue;
           const stopSpinner = showSetupProgress(`Configuring ${client.displayName}...`);
-          await new Promise((r) => setTimeout(r, 400));
+          await new Promise((r) => {
+            setTimeout(r, 400);
+          });
           const success = configureLLMClient(client.name, PROJECT_ROOT);
           stopSpinner();
           if (success) showSuccess(`Configured ${client.displayName}`);
@@ -794,20 +863,21 @@ export async function runSetup(): Promise<void> {
   // ── Persist final .env ─────────────────────────────────────────────────────
 
   const marketplaceId =
-    answers['marketplace'] === '__custom__'
+    answers.marketplace === '__custom__'
       ? (answers['marketplace-custom'] as string)
-      : (answers['marketplace'] as string);
+      : (answers.marketplace as string);
 
   const contentLanguage =
     answers['content-language'] === '__custom__'
       ? (answers['content-language-custom'] as string)
       : (answers['content-language'] as string);
 
-  const environment = answers['environment'] as string;
+  const environment = answers.environment as string;
 
   const finalConfig: Record<string, string> = {
     EBAY_CLIENT_ID: answers['client-id'] as string,
-    EBAY_CLIENT_SECRET: (answers['client-secret'] as string) || existingConfig.EBAY_CLIENT_SECRET || '',
+    EBAY_CLIENT_SECRET:
+      (answers['client-secret'] as string) || existingConfig.EBAY_CLIENT_SECRET || '',
     EBAY_REDIRECT_URI: answers['redirect-uri'] as string,
     EBAY_ENVIRONMENT: environment,
     ...(marketplaceId ? { EBAY_MARKETPLACE_ID: marketplaceId } : {}),
@@ -822,7 +892,9 @@ export async function runSetup(): Promise<void> {
   };
 
   const stopSave = showSetupProgress('Saving configuration...');
-  await new Promise((r) => setTimeout(r, 300));
+  await new Promise((r) => {
+    setTimeout(r, 300);
+  });
   saveConfig(finalConfig, environment);
   stopSave();
   showSuccess('Configuration saved to .env\n');
@@ -856,7 +928,9 @@ export async function runSetup(): Promise<void> {
   console.log('  3. Try: "Show my eBay seller information"\n');
 
   console.log(ui.dim('  Documentation: ') + ui.info('https://github.com/YosefHayim/ebay-mcp'));
-  console.log(ui.dim('  Get Help:      ') + ui.info('https://github.com/YosefHayim/ebay-mcp/issues\n'));
+  console.log(
+    ui.dim('  Get Help:      ') + ui.info('https://github.com/YosefHayim/ebay-mcp/issues\n')
+  );
 }
 
 // ─── Entry point ──────────────────────────────────────────────────────────────

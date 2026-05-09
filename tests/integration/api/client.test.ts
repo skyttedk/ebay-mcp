@@ -5,10 +5,8 @@ import type { EbayConfig } from '../../../src/types/ebay.js';
 import {
   mockEbayApiEndpoint,
   mockEbayApiError,
-  mockOAuthTokenEndpoint,
   cleanupMocks,
 } from '../../helpers/mock-http.js';
-import { createMockTokens } from '../../helpers/mock-token-storage.js';
 
 // Mock EbayOAuthClient to provide tokens without environment variables
 const mockOAuthClient = {

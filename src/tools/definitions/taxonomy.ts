@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 import type { OutputArgs, ToolDefinition } from '../tool-definitions.js';
 
+/** Taxonomy API tools for category trees, category suggestions, and compatibility metadata. */
 export const taxonomyTools: ToolDefinition[] = [
   {
     name: 'ebay_get_default_category_tree_id',

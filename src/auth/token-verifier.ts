@@ -12,6 +12,9 @@ import type {
   OAuthServerMetadata,
 } from './oauth-types.js';
 
+/**
+ * OAuth issuer and audience settings used to validate MCP access tokens.
+ */
 export interface TokenVerifierConfig {
   /**
    * OAuth authorization server metadata URL or metadata object
@@ -45,6 +48,9 @@ export interface TokenVerifierConfig {
   useIntrospection?: boolean;
 }
 
+/**
+ * Verifies MCP Bearer tokens using OAuth introspection or JWT validation.
+ */
 export class TokenVerifier {
   private config: TokenVerifierConfig;
   private metadata: OAuthServerMetadata | null = null;

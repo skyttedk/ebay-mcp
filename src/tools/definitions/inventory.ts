@@ -32,6 +32,7 @@ import {
 } from '@/schemas/inventory-management/inventory.js';
 import type { OutputArgs, ToolDefinition } from '../tool-definitions.js';
 
+/** Inventory API tools for seller inventory items, offers, locations, and bulk operations. */
 export const inventoryTools: ToolDefinition[] = [
   {
     name: 'ebay_get_inventory_items',

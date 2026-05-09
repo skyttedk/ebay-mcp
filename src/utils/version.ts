@@ -26,6 +26,9 @@ function isPackageJson(value: unknown): value is PackageJson {
   );
 }
 
+/**
+ * Reads and caches package metadata used by version helpers.
+ */
 export function getPackageJson(): PackageJson {
   if (cachedPackageJson) {
     return cachedPackageJson;
@@ -46,16 +49,25 @@ export function getPackageJson(): PackageJson {
   }
 }
 
+/**
+ * Returns the package version from package.json.
+ */
 export function getVersion(): string {
   return getPackageJson().version;
 }
 
+/**
+ * Returns the package name from package.json.
+ */
 export function getPackageName(): string {
   return getPackageJson().name;
 }
 
 const ONE_DAY_MS = 1000 * 60 * 60 * 24;
 
+/**
+ * Notifies global CLI users when a newer package version is available.
+ */
 export function checkForUpdates(options: { defer?: boolean } = {}): void {
   const pkg = getPackageJson();
 
@@ -72,6 +84,9 @@ export function checkForUpdates(options: { defer?: boolean } = {}): void {
   });
 }
 
+/**
+ * Fetches update metadata without printing a notification.
+ */
 export async function getUpdateInfo(): Promise<
   { current: string; latest: string; name: string } | undefined
 > {

@@ -8,6 +8,9 @@ import axios from 'axios';
 
 const RSS_URL = 'https://developer.ebay.com/rss/api-status';
 
+/**
+ * Parsed eBay API status feed entry exposed to MCP tools.
+ */
 export interface ApiStatusItem {
   title: string;
   summary: string;
@@ -45,9 +48,7 @@ function normalizeString(value: unknown): string {
 
 function parseItem(raw: RssItemRaw): ApiStatusItem {
   const summary =
-    normalizeString(raw.summary) ||
-    stripHtml(normalizeString(raw.description)).slice(0, 300) ||
-    '';
+    normalizeString(raw.summary) || stripHtml(normalizeString(raw.description)).slice(0, 300) || '';
   return {
     title: normalizeString(raw.title) || 'Untitled',
     summary: summary || normalizeString(raw.title),
@@ -68,6 +69,9 @@ interface RssRoot {
   rss?: { channel?: { item?: RssItemRaw | RssItemRaw[] } };
 }
 
+/**
+ * Filters and pagination options for the eBay API status feed.
+ */
 export interface GetApiStatusFeedOptions {
   limit?: number;
   status?: 'Resolved' | 'Unresolved';
@@ -107,9 +111,7 @@ export async function getApiStatusFeed(
     let items: ApiStatusItem[] = rawItems.map(parseItem);
 
     if (statusFilter) {
-      items = items.filter(
-        (i) => i.status.toLowerCase() === statusFilter.toLowerCase()
-      );
+      items = items.filter((i) => i.status.toLowerCase() === statusFilter.toLowerCase());
     }
     if (apiFilter?.trim()) {
       const needle = apiFilter.trim().toLowerCase();

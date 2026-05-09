@@ -1,11 +1,9 @@
 #!/usr/bin/env node
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { EbaySellerApi } from '@/api/index.js';
-import { getEbayConfig, mcpConfig, validateEnvironmentConfig } from '@/config/environment.js';
+import { validateEnvironmentConfig } from '@/config/environment.js';
+import { createEbayMcpRuntime, type EbayMcpRuntime } from '@/mcp/runtime.js';
 import { runSetup } from '@/scripts/setup.js';
-import { getToolDefinitions, executeTool } from '@/tools/index.js';
-import { serverLogger, toolLogger, getLogPaths } from '@/utils/logger.js';
+import { serverLogger, getLogPaths } from '@/utils/logger.js';
 import { checkForUpdates } from '@/utils/version.js';
 
 checkForUpdates({ defer: true });
@@ -26,15 +24,10 @@ if (args.includes('setup')) {
  * Provides access to eBay APIs through Model Context Protocol
  */
 class EbayMcpServer {
-  private server: McpServer;
-  private api: EbaySellerApi;
+  private runtime: EbayMcpRuntime;
 
   constructor() {
-    this.server = new McpServer(mcpConfig);
-
-    // Initialize eBay API client
-    this.api = new EbaySellerApi(getEbayConfig());
-    this.setupHandlers();
+    this.runtime = createEbayMcpRuntime({ logToolExecution: true });
     this.setupErrorHandling();
   }
 
@@ -42,58 +35,13 @@ class EbayMcpServer {
    * Initialize the API (load tokens from storage)
    */
   private async initialize(): Promise<void> {
-    await this.api.initialize();
-  }
-
-  private setupHandlers(): void {
-    const tools = getToolDefinitions();
-
-    serverLogger.info(`Registering ${tools.length} tools`);
-
-    // Register each tool with the MCP server
-    for (const toolDef of tools) {
-      this.server.registerTool(
-        toolDef.name,
-        {
-          description: toolDef.description,
-          inputSchema: toolDef.inputSchema,
-        },
-        async (args: Record<string, unknown>) => {
-          toolLogger.debug(`Executing tool: ${toolDef.name}`, { args });
-          try {
-            const result = await executeTool(this.api, toolDef.name, args);
-            toolLogger.debug(`Tool ${toolDef.name} completed successfully`);
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: JSON.stringify(result, null, 2),
-                },
-              ],
-            };
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            toolLogger.error(`Tool ${toolDef.name} failed`, { error: errorMessage });
-
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: JSON.stringify({ error: errorMessage }, null, 2),
-                },
-              ],
-              isError: true,
-            };
-          }
-        }
-      );
-    }
+    await this.runtime.initializeApi();
   }
 
   private setupErrorHandling(): void {
     process.on('SIGINT', async () => {
       serverLogger.info('Received SIGINT, shutting down...');
-      await this.server.close();
+      await this.runtime.server.close();
       process.exit(0);
     });
   }
@@ -135,7 +83,7 @@ class EbayMcpServer {
     }
 
     const transport = new StdioServerTransport();
-    await this.server.connect(transport);
+    await this.runtime.server.connect(transport);
     serverLogger.info('eBay API MCP Server running on stdio');
   }
 }

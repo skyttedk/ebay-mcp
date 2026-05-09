@@ -10,7 +10,6 @@ type CreateCampaignRequest = components['schemas']['CreateCampaignRequest'];
 type AdPagedCollectionResponse = components['schemas']['AdPagedCollectionResponse'];
 type Ad = components['schemas']['Ad'];
 type CreateAdRequest = components['schemas']['CreateAdRequest'];
-type AdReferences = components['schemas']['AdReferences'];
 type CloneCampaignRequest = components['schemas']['CloneCampaignRequest'];
 type UpdateCampaignIdentificationRequest =
   components['schemas']['UpdateCampaignIdentificationRequest'];

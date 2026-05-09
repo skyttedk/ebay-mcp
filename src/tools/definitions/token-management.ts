@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 import type { OutputArgs, ToolDefinition } from '../tool-definitions.js';
 
 /**
@@ -12,6 +11,7 @@ import type { OutputArgs, ToolDefinition } from '../tool-definitions.js';
  * - Token expiry validation
  * - Date/timestamp conversion utilities
  */
+/** OAuth token management tools for consent URLs, token storage, refresh, and status. */
 export const tokenManagementTools: ToolDefinition[] = [
   {
     name: 'ebay_get_oauth_url',

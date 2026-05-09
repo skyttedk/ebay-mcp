@@ -14,6 +14,9 @@ export interface AuthenticatedRequest extends Request {
   auth?: VerifiedToken;
 }
 
+/**
+ * Configuration for MCP Bearer-token authentication middleware.
+ */
 export interface BearerAuthMiddlewareConfig {
   /**
    * Token verifier instance

@@ -337,13 +337,14 @@ export class EbayApiClient {
   /**
    * Set user access and refresh tokens
    */
-  async setUserTokens(
+  setUserTokens(
     accessToken: string,
     refreshToken: string,
     accessTokenExpiry?: number,
     refreshTokenExpiry?: number
   ): Promise<void> {
     this.authClient.setUserTokens(accessToken, refreshToken, accessTokenExpiry, refreshTokenExpiry);
+    return Promise.resolve();
   }
 
   /**

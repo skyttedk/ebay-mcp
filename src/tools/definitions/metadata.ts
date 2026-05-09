@@ -1,9 +1,9 @@
 import { MarketplaceId } from '@/types/ebay-enums.js';
 import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 import { compatibilityDataSchema, compatibilitySpecificationSchema } from '../schemas.js';
 import type { OutputArgs, ToolDefinition } from '../tool-definitions.js';
 
+/** Metadata API tools for marketplace, business policy, and sales tax metadata. */
 export const metadataTools: ToolDefinition[] = [
   {
     name: 'ebay_get_automotive_parts_compatibility_policies',

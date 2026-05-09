@@ -249,7 +249,7 @@ function updateClientConfig(client: MCPClient, serverConfig: MCPServerConfig): b
       try {
         const existing = readFileSync(client.configPath, 'utf-8');
         config = readRecord(JSON.parse(existing));
-      } catch (error) {
+      } catch {
         printWarning(`Invalid JSON in ${client.configPath}, creating backup and new config`);
         const backup = `${client.configPath}.backup.${Date.now()}`;
         writeFileSync(backup, readFileSync(client.configPath));
@@ -393,7 +393,7 @@ function validateAutoSetupEnvironment(): { valid: boolean; errors: string[]; war
 // Main
 // ═══════════════════════════════════════════════════════════════════════════
 
-async function main(): Promise<void> {
+function main(): void {
   printHeader('eBay API MCP Server - Auto Setup');
 
   // Step 1: Validate environment
@@ -480,7 +480,4 @@ async function main(): Promise<void> {
 }
 
 // Run the script
-main().catch((error) => {
-  printError(`Auto-setup failed: ${error}`);
-  process.exit(1);
-});
+main();

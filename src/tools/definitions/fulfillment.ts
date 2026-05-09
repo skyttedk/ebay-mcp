@@ -11,6 +11,7 @@ import {
 } from '@/schemas/fulfillment/orders.js';
 import type { OutputArgs, ToolDefinition } from '../tool-definitions.js';
 
+/** Fulfillment API tools for orders, shipping fulfillments, refunds, and cancellations. */
 export const fulfillmentTools: ToolDefinition[] = [
   {
     name: 'ebay_get_orders',

@@ -1,5 +1,6 @@
 import type { EbayApiClient } from '../client.js';
 import { buildValidatedPaginatedParams } from '../shared/query-params.js';
+import { getWithApiError, requireString } from '../shared/request.js';
 
 /**
  * Build validated pagination query params.
@@ -24,9 +25,7 @@ export function buildPaginatedQueryParams(
  * @param paramName Parameter name used in error text.
  */
 export function assertRequiredString(value: string, paramName: string): void {
-  if (!value || typeof value !== 'string') {
-    throw new Error(`${paramName} is required and must be a string`);
-  }
+  requireString(value, paramName);
 }
 
 /**
@@ -42,11 +41,7 @@ export async function getPathWithContextError(
   path: string,
   failureMessage: string
 ) {
-  try {
-    return await client.get(path);
-  } catch (error) {
-    throw new Error(`${failureMessage}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
+  return await getWithApiError(client, path, failureMessage);
 }
 
 /**
@@ -64,11 +59,7 @@ export async function getWithContextError(
   params: Record<string, string | number>,
   failureMessage: string
 ) {
-  try {
-    return await client.get(path, params);
-  } catch (error) {
-    throw new Error(`${failureMessage}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
+  return await getWithApiError(client, path, failureMessage, params);
 }
 
 /**

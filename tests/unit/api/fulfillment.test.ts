@@ -428,6 +428,7 @@ describe('FulfillmentApi', () => {
           ]),
         })
       );
+      expect(result).toEqual(mockRefund);
     });
   });
 });

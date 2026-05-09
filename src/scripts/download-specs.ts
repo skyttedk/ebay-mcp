@@ -19,14 +19,6 @@ const getUrlsFromReadme = (content: string): string[] => {
   return urls;
 };
 
-const getSpecUrlsFromHtml = (html: string): string[] => {
-  const linkRegex = /<a[^>]*?class="[^"]*\bspec-parent\b[^"]*"[^>]*?href="([^"]+)"/g;
-  const matches = [...html.matchAll(linkRegex)];
-  const urls = matches.map((match) => match[1]);
-  // Filter out duplicates
-  return [...new Set(urls)];
-};
-
 const getFolderName = (specUrl: string): string => {
   const fileName = path.basename(specUrl);
   // mapping from file name to folder name
@@ -132,4 +124,4 @@ const main = async () => {
   }
 };
 
-main();
+void main();

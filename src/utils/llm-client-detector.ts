@@ -9,17 +9,26 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { homedir, platform } from 'os';
 
+/**
+ * Detection result for an MCP-capable client configuration location.
+ */
 export interface DetectedMCPClient {
   name: string;
   configPath: string;
   detected: boolean;
 }
 
+/**
+ * LLM client metadata shown during setup and auto-configuration.
+ */
 export interface LLMClient extends DetectedMCPClient {
   displayName: string;
   configExists: boolean;
 }
 
+/**
+ * MCP server command block written into client configuration files.
+ */
 export interface MCPServerConfig {
   command: string;
   args?: string[];
@@ -800,7 +809,7 @@ Add this to ${getAmazonQConfigPath()}:
 /**
  * Verify client configuration is correct
  */
-export function verifyClientConfiguration(clientName: string, projectRoot: string): boolean {
+export function verifyClientConfiguration(clientName: string, _projectRoot: string): boolean {
   try {
     switch (clientName) {
       case 'claude': {

@@ -109,6 +109,9 @@ const packageWeightAndSizeSchema = z.object({
   weight: weightSchema.optional(),
 });
 
+/**
+ * Validates the Inventory Management API inventory item model.
+ */
 export const inventoryItemSchema = z.object({
   availability: availabilitySchema.optional(),
   condition: z.nativeEnum(Condition).optional(),
@@ -126,11 +129,17 @@ export const inventoryItemSchema = z.object({
   locale: z.string().optional(),
 });
 
+/**
+ * Validates the Inventory Management API get inventory items request payload.
+ */
 export const getInventoryItemsInputSchema = z.object({
   limit: z.number().optional().describe('Number of items to return per page'),
   offset: z.number().optional().describe('Number of items to skip for pagination'),
 });
 
+/**
+ * Validates the Inventory Management API get inventory items response payload.
+ */
 export const getInventoryItemsOutputSchema = z.object({
   inventoryItems: z
     .array(
@@ -155,20 +164,32 @@ export const getInventoryItemsOutputSchema = z.object({
   warnings: z.array(errorSchema).optional(),
 });
 
+/**
+ * Validates the Inventory Management API get inventory item request payload.
+ */
 export const getInventoryItemInputSchema = z.object({
   sku: z.string().describe('The seller-defined SKU value for the inventory item'),
 });
 
+/**
+ * Validates the Inventory Management API get inventory item response payload.
+ */
 export const getInventoryItemOutputSchema = inventoryItemSchema.extend({
   sku: z.string().optional(),
   warnings: z.array(errorSchema).optional(),
 });
 
+/**
+ * Validates the Inventory Management API create inventory item request payload.
+ */
 export const createInventoryItemInputSchema = z.object({
   sku: z.string().describe('The seller-defined SKU value for the inventory item'),
   inventoryItem: inventoryItemSchema,
 });
 
+/**
+ * Validates the Inventory Management API create inventory item response payload.
+ */
 export const createInventoryItemOutputSchema = z.object({
   warnings: z.array(errorSchema).optional(),
 });
@@ -206,6 +227,9 @@ const taxSchema = z.object({
   vatPercentage: z.number().optional(),
 });
 
+/**
+ * Validates the Inventory Management API offer model.
+ */
 export const offerSchema = z.object({
   sku: z.string(),
   marketplaceId: z.nativeEnum(MarketplaceId),
@@ -241,6 +265,9 @@ export const offerSchema = z.object({
   tax: taxSchema.optional(),
 });
 
+/**
+ * Validates the Inventory Management API offer response payload.
+ */
 export const offerResponseSchema = offerSchema.extend({
   offerId: z.string().optional(),
   listing: z
@@ -255,12 +282,18 @@ export const offerResponseSchema = offerSchema.extend({
   warnings: z.array(errorSchema).optional(),
 });
 
+/**
+ * Validates the Inventory Management API get offers request payload.
+ */
 export const getOffersInputSchema = z.object({
   sku: z.string().optional().describe('Filter offers by SKU'),
   marketplaceId: z.nativeEnum(MarketplaceId).optional().describe('Filter offers by marketplace'),
   limit: z.number().optional().describe('Number of offers to return'),
 });
 
+/**
+ * Validates the Inventory Management API get offers response payload.
+ */
 export const getOffersOutputSchema = z.object({
   offers: z.array(offerResponseSchema).optional(),
   href: z.string().optional(),
@@ -273,19 +306,31 @@ export const getOffersOutputSchema = z.object({
   warnings: z.array(errorSchema).optional(),
 });
 
+/**
+ * Validates the Inventory Management API create offer request payload.
+ */
 export const createOfferInputSchema = z.object({
   offer: offerSchema,
 });
 
+/**
+ * Validates the Inventory Management API create offer response payload.
+ */
 export const createOfferOutputSchema = z.object({
   offerId: z.string().optional(),
   warnings: z.array(errorSchema).optional(),
 });
 
+/**
+ * Validates the Inventory Management API publish offer request payload.
+ */
 export const publishOfferInputSchema = z.object({
   offerId: z.string().describe('The unique identifier of the offer to publish'),
 });
 
+/**
+ * Validates the Inventory Management API publish offer response payload.
+ */
 export const publishOfferOutputSchema = z.object({
   listingId: z.string().optional(),
   warnings: z.array(errorSchema).optional(),
@@ -333,6 +378,9 @@ const addressSchema = z.object({
   country: z.string().optional(),
 });
 
+/**
+ * Validates the Inventory Management API location model.
+ */
 export const locationSchema = z.object({
   location: z
     .object({
@@ -351,11 +399,17 @@ export const locationSchema = z.object({
   specialHours: z.array(specialHoursSchema).optional(),
 });
 
+/**
+ * Validates the Inventory Management API get inventory locations request payload.
+ */
 export const getInventoryLocationsInputSchema = z.object({
   limit: z.number().optional().describe('Number of locations to return'),
   offset: z.number().optional().describe('Number of locations to skip'),
 });
 
+/**
+ * Validates the Inventory Management API get inventory locations response payload.
+ */
 export const getInventoryLocationsOutputSchema = z.object({
   locations: z
     .array(
@@ -374,11 +428,17 @@ export const getInventoryLocationsOutputSchema = z.object({
   warnings: z.array(errorSchema).optional(),
 });
 
+/**
+ * Validates the Inventory Management API create inventory location request payload.
+ */
 export const createInventoryLocationInputSchema = z.object({
   merchantLocationKey: z.string().describe('Unique merchant-defined key for the location'),
   location: locationSchema,
 });
 
+/**
+ * Validates the Inventory Management API create inventory location response payload.
+ */
 export const createInventoryLocationOutputSchema = z.object({
   warnings: z.array(errorSchema).optional(),
 });
@@ -386,11 +446,6 @@ export const createInventoryLocationOutputSchema = z.object({
 // ============================================================================
 // Product Compatibility Schemas
 // ============================================================================
-
-const compatibilityPropertySchema = z.object({
-  name: z.string(),
-  value: z.string(),
-});
 
 const productFamilyPropertiesSchema = z.object({
   make: z.string().optional(),
@@ -406,14 +461,23 @@ const compatibleProductSchema = z.object({
   notes: z.string().optional(),
 });
 
+/**
+ * Validates the Inventory Management API product compatibility model.
+ */
 export const productCompatibilitySchema = z.object({
   compatibleProducts: z.array(compatibleProductSchema).optional(),
 });
 
+/**
+ * Validates the Inventory Management API get product compatibility request payload.
+ */
 export const getProductCompatibilityInputSchema = z.object({
   sku: z.string().describe('The SKU of the inventory item'),
 });
 
+/**
+ * Validates the Inventory Management API get product compatibility response payload.
+ */
 export const getProductCompatibilityOutputSchema = productCompatibilitySchema.extend({
   warnings: z.array(errorSchema).optional(),
 });
@@ -432,6 +496,9 @@ const variesBySchema = z.object({
   aspectsImageVariesBy: z.array(z.string()).optional(),
 });
 
+/**
+ * Validates the Inventory Management API inventory item group model.
+ */
 export const inventoryItemGroupSchema = z.object({
   aspects: z.record(z.array(z.string())),
   description: z.string().optional(),
@@ -444,10 +511,16 @@ export const inventoryItemGroupSchema = z.object({
   videoIds: z.array(z.string()).optional(),
 });
 
+/**
+ * Validates the Inventory Management API get inventory item group request payload.
+ */
 export const getInventoryItemGroupInputSchema = z.object({
   inventoryItemGroupKey: z.string().describe('The unique identifier for the inventory item group'),
 });
 
+/**
+ * Validates the Inventory Management API get inventory item group response payload.
+ */
 export const getInventoryItemGroupOutputSchema = inventoryItemGroupSchema.extend({
   warnings: z.array(errorSchema).optional(),
 });
@@ -456,6 +529,9 @@ export const getInventoryItemGroupOutputSchema = inventoryItemGroupSchema.extend
 // Bulk Operation Schemas
 // ============================================================================
 
+/**
+ * Validates the Inventory Management API bulk inventory item request model.
+ */
 export const bulkInventoryItemRequestSchema = z.object({
   requests: z.array(
     z.object({
@@ -468,6 +544,9 @@ export const bulkInventoryItemRequestSchema = z.object({
   ),
 });
 
+/**
+ * Validates the Inventory Management API bulk inventory item response payload.
+ */
 export const bulkInventoryItemResponseSchema = z.object({
   responses: z
     .array(
@@ -481,10 +560,16 @@ export const bulkInventoryItemResponseSchema = z.object({
     .optional(),
 });
 
+/**
+ * Validates the Inventory Management API bulk offer request model.
+ */
 export const bulkOfferRequestSchema = z.object({
   requests: z.array(offerSchema),
 });
 
+/**
+ * Validates the Inventory Management API bulk offer response payload.
+ */
 export const bulkOfferResponseSchema = z.object({
   responses: z
     .array(
@@ -498,6 +583,9 @@ export const bulkOfferResponseSchema = z.object({
     .optional(),
 });
 
+/**
+ * Validates the Inventory Management API bulk publish request model.
+ */
 export const bulkPublishRequestSchema = z.object({
   requests: z.array(
     z.object({
@@ -506,6 +594,9 @@ export const bulkPublishRequestSchema = z.object({
   ),
 });
 
+/**
+ * Validates the Inventory Management API bulk publish response payload.
+ */
 export const bulkPublishResponseSchema = z.object({
   responses: z
     .array(

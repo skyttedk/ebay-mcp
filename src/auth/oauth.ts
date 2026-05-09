@@ -1,4 +1,13 @@
 import axios from 'axios';
+import {
+  createAppAccessTokenExpiry,
+  createStoredUserTokens,
+  createStoredUserTokensFromResponse,
+  DotEnvCredentialStore,
+  isTokenExpired,
+  type CredentialStore,
+  type EbayUserTokenResponse,
+} from '@/auth/credential-session.js';
 import { getBaseUrl, getDefaultScopes } from '@/config/environment.js';
 import type {
   EbayAppAccessTokenResponse,
@@ -7,34 +16,7 @@ import type {
   StoredTokenData,
 } from '@/types/ebay.js';
 import { LocaleEnum } from '@/types/ebay-enums.js';
-import dotenv from 'dotenv';
-import stringify from 'dotenv-stringify';
-import { existsSync, readFileSync, writeFileSync } from 'fs';
-import { join } from 'path';
 import { authLogger } from '@/utils/logger.js';
-
-/**
- * Update .env file with new token values
- */
-function updateEnvFile(updates: Record<string, string>): void {
-  try {
-    const envPath = join(process.cwd(), '.env');
-    const existingEnv = existsSync(envPath) ? dotenv.parse(readFileSync(envPath, 'utf-8')) : {};
-
-    // Merge new updates into existing environment object
-    const mergedEnv = { ...existingEnv, ...updates };
-
-    // Securely stringify the merged environment object
-    const safeEnvContent = stringify(mergedEnv);
-
-    // Write the updated content back to the .env file
-    writeFileSync(envPath, safeEnvContent, 'utf-8');
-  } catch (_error) {
-    // Silent failure - error logging interferes with MCP JSON protocol
-    // If needed, check .env file manually
-  }
-}
-
 
 /**
  * Manages eBay OAuth 2.0 authentication
@@ -46,7 +28,10 @@ export class EbayOAuthClient {
   private appAccessTokenExpiry = 0;
   private userTokens: StoredTokenData | null = null;
 
-  constructor(private config: EbayConfig) {}
+  constructor(
+    private config: EbayConfig,
+    private credentialStore: CredentialStore = new DotEnvCredentialStore()
+  ) {}
 
   /**
    * Initialize user tokens from environment variables only
@@ -61,22 +46,12 @@ export class EbayOAuthClient {
     if (envRefreshToken) {
       authLogger.info('Loading tokens from environment variables');
 
-      // Create token object with just the refresh token from environment
-      // Note: We don't set scopes here - eBay will return the scopes when we refresh
-      const now = Date.now();
-      this.userTokens = {
-        clientId: this.config.clientId,
-        clientSecret: this.config.clientSecret,
-        userAccessToken: envAccessToken || '', // Can be empty, will be filled by refresh
-        userRefreshToken: envRefreshToken,
-        redirectUri: this.config.redirectUri,
+      this.userTokens = createStoredUserTokens({
+        config: { ...this.config, locale },
         envAppToken,
-        tokenType: 'Bearer',
-        locale,
-        userAccessTokenExpiry: now + 7200 * 1000, // Default 2 hours
-        userRefreshTokenExpiry: now + 18 * 30 * 24 * 60 * 60 * 1000, // Default 18 months
-        // scope is not set - will be populated by the refresh response
-      };
+        accessToken: envAccessToken || '',
+        refreshToken: envRefreshToken,
+      });
 
       // Immediately refresh to get a valid access token and scopes
       authLogger.info('Refreshing access token using refresh token from .env');
@@ -107,14 +82,14 @@ export class EbayOAuthClient {
    * Check if user access token is expired
    */
   private isUserAccessTokenExpired(tokens: StoredTokenData): boolean {
-    return tokens.userAccessTokenExpiry ? Date.now() >= tokens.userAccessTokenExpiry : true;
+    return isTokenExpired(tokens.userAccessTokenExpiry);
   }
 
   /**
    * Check if user refresh token is expired
    */
   private isUserRefreshTokenExpired(tokens: StoredTokenData): boolean {
-    return tokens.userRefreshTokenExpiry ? Date.now() >= tokens.userRefreshTokenExpiry : true;
+    return isTokenExpired(tokens.userRefreshTokenExpiry);
   }
 
   /**
@@ -153,7 +128,7 @@ export class EbayOAuthClient {
     }
 
     // Fallback to app access token (client credentials)
-    if (this.appAccessToken && Date.now() < this.appAccessTokenExpiry) {
+    if (this.appAccessToken && !isTokenExpired(this.appAccessTokenExpiry)) {
       return this.appAccessToken;
     }
 
@@ -171,23 +146,16 @@ export class EbayOAuthClient {
     accessTokenExpiry?: number,
     refreshTokenExpiry?: number
   ): void {
-    // Store tokens in memory with default expiry
-    // Access tokens typically expire in 2 hours (7200 seconds)
-    // Refresh tokens typically expire in 18 months
-    const now = Date.now();
-    this.userTokens = {
-      clientId: this.config.clientId,
-      clientSecret: this.config.clientSecret,
-      redirectUri: this.config.redirectUri,
-      userAccessToken: accessToken,
-      userRefreshToken: refreshToken,
-      tokenType: 'Bearer',
-      userAccessTokenExpiry: accessTokenExpiry ?? now + 7200 * 1000, // Default 2 hours
-      userRefreshTokenExpiry: refreshTokenExpiry ?? now + 18 * 30 * 24 * 60 * 60 * 1000, // Default 18 months
-    };
+    this.userTokens = createStoredUserTokens({
+      config: this.config,
+      accessToken,
+      refreshToken,
+      accessTokenExpiry,
+      refreshTokenExpiry,
+    });
 
     // Update .env file with new tokens
-    updateEnvFile({
+    this.credentialStore.write({
       EBAY_USER_ACCESS_TOKEN: accessToken,
       EBAY_USER_REFRESH_TOKEN: refreshToken,
     });
@@ -200,7 +168,7 @@ export class EbayOAuthClient {
    */
   async getOrRefreshAppAccessToken(): Promise<string> {
     // Return cached token if still valid
-    if (this.appAccessToken && Date.now() < this.appAccessTokenExpiry) {
+    if (this.appAccessToken && !isTokenExpired(this.appAccessTokenExpiry)) {
       return this.appAccessToken;
     }
 
@@ -229,11 +197,10 @@ export class EbayOAuthClient {
       );
 
       this.appAccessToken = response.data.access_token;
-      // Set expiry with 60 second buffer
-      this.appAccessTokenExpiry = Date.now() + (response.data.expires_in - 60) * 1000;
+      this.appAccessTokenExpiry = createAppAccessTokenExpiry(response.data.expires_in);
 
       // Update .env file with app access token
-      updateEnvFile({
+      this.credentialStore.write({
         EBAY_APP_ACCESS_TOKEN: this.appAccessToken,
       });
 
@@ -280,22 +247,13 @@ export class EbayOAuthClient {
 
       const tokenData: EbayUserToken = response.data;
 
-      // Store the user tokens in memory
-      const now = Date.now();
-      this.userTokens = {
-        clientId: this.config.clientId,
-        clientSecret: this.config.clientSecret,
-        redirectUri: this.config.redirectUri,
-        userAccessToken: tokenData.access_token,
-        userRefreshToken: tokenData.refresh_token,
-        tokenType: tokenData.token_type,
-        userAccessTokenExpiry: now + tokenData.expires_in * 1000,
-        userRefreshTokenExpiry: now + tokenData.refresh_token_expires_in * 1000,
-        scope: tokenData.scope,
-      };
+      this.userTokens = createStoredUserTokensFromResponse({
+        config: this.config,
+        tokenData,
+      });
 
       // Persist tokens to .env so they survive process restarts.
-      updateEnvFile({
+      this.credentialStore.write({
         EBAY_USER_ACCESS_TOKEN: tokenData.access_token,
         EBAY_USER_REFRESH_TOKEN: tokenData.refresh_token,
       });
@@ -342,24 +300,13 @@ export class EbayOAuthClient {
         },
       });
 
-      const tokenData: EbayUserToken = response.data;
+      const tokenData = response.data as EbayUserTokenResponse;
 
-      // Update tokens in memory
-      const now = Date.now();
-      this.userTokens = {
-        clientId: this.config.clientId,
-        clientSecret: this.config.clientSecret,
-        redirectUri: this.config.redirectUri,
-        userAccessToken: tokenData.access_token,
-        userRefreshToken: tokenData.refresh_token || this.userTokens.userRefreshToken, // Use new refresh token if provided
-        tokenType: tokenData.token_type,
-        userAccessTokenExpiry: now + tokenData.expires_in * 1000,
-        userRefreshTokenExpiry: tokenData.refresh_token_expires_in
-          ? now + tokenData.refresh_token_expires_in * 1000
-          : this.userTokens.userRefreshTokenExpiry, // Keep existing expiry if not provided
-        // eBay may not return scope in refresh response - preserve existing scope if not returned
-        scope: tokenData.scope || this.userTokens.scope,
-      };
+      this.userTokens = createStoredUserTokensFromResponse({
+        config: this.config,
+        previousTokens: this.userTokens,
+        tokenData,
+      });
 
       // Update .env file with new tokens
       const envUpdates: Record<string, string> = {
@@ -372,7 +319,7 @@ export class EbayOAuthClient {
       }
 
       // Write updates to .env file
-      updateEnvFile(envUpdates);
+      this.credentialStore.write(envUpdates);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         throw new Error(
@@ -390,7 +337,7 @@ export class EbayOAuthClient {
     if (this.userTokens && !this.isUserAccessTokenExpired(this.userTokens)) {
       return true;
     }
-    return this.appAccessToken !== null && Date.now() < this.appAccessTokenExpiry;
+    return this.appAccessToken !== null && !isTokenExpired(this.appAccessTokenExpiry);
   }
 
   /**

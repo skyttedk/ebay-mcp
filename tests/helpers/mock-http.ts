@@ -94,6 +94,9 @@ export function enableMocks() {
   nock.disableNetConnect();
 }
 
+/**
+ * Disable HTTP mocking and re-enable real network connections.
+ */
 export function disableMocks() {
   nock.restore();
   nock.enableNetConnect();

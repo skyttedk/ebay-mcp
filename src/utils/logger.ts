@@ -33,7 +33,7 @@ const consoleFormat = winston.format.combine(
   winston.format.errors({ stack: true }),
   winston.format.printf(({ level, message, timestamp, stack, ...meta }) => {
     const metaStr = Object.keys(meta).length ? `\n${JSON.stringify(meta, null, 2)}` : '';
-    const stackStr = stack ? `\n${stack}` : '';
+    const stackStr = typeof stack === 'string' ? `\n${stack}` : '';
     return `[${timestamp}] [${level.toUpperCase()}] ${message}${metaStr}${stackStr}`;
   })
 );
@@ -140,10 +140,15 @@ export function createLogger(component: string): ComponentLogger {
 /**
  * Pre-configured loggers for different components
  */
+/** Logger for server lifecycle events. */
 export const serverLogger = createLogger('Server');
+/** Logger for outbound eBay API calls. */
 export const apiLogger = createLogger('API');
+/** Logger for OAuth and token operations. */
 export const authLogger = createLogger('Auth');
+/** Logger for MCP tool execution. */
 export const toolLogger = createLogger('Tool');
+/** Logger for setup wizard output. */
 export const setupLogger = createLogger('Setup');
 
 /**
@@ -213,7 +218,12 @@ function truncateData(data: unknown, maxLength = 1000): unknown {
 /**
  * Get log file paths for user reference
  */
-export function getLogPaths(): { logDir: string; errorLog: string; combinedLog: string; debugLog: string } {
+export function getLogPaths(): {
+  logDir: string;
+  errorLog: string;
+  combinedLog: string;
+  debugLog: string;
+} {
   return {
     logDir: LOG_DIR,
     errorLog: join(LOG_DIR, 'error.log'),
@@ -258,4 +268,7 @@ export function setLogLevel(level: string): void {
   logger.info(`Log level set to: ${level}`);
 }
 
+/**
+ * Default Winston logger instance.
+ */
 export default logger;

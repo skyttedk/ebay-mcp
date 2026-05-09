@@ -16,9 +16,12 @@ export default tseslint.config(
       'docs/**',
       '*.config.js',
       '*.config.mjs',
+      'smoke-test-trading.mjs',
       'scripts/**',
       // Generated OpenAPI types
       'src/types/*.d.ts',
+      'src/types/application-settings/**/*Oas3.ts',
+      'src/types/sell-apps/**/*Oas3.ts',
     ],
   },
 
@@ -96,6 +99,7 @@ export default tseslint.config(
         'error',
         {
           version: '>=18.0.0',
+          ignores: ['fetch'],
         },
       ],
       'n/no-process-exit': 'warn',
@@ -164,9 +168,17 @@ export default tseslint.config(
     },
   },
 
+  // Source entrypoints keep shebangs so emitted CLI scripts are directly runnable.
+  {
+    files: ['src/index.ts', 'src/scripts/*.ts'],
+    rules: {
+      'n/hashbang': 'off',
+    },
+  },
+
   // Test files specific configuration
   {
-    files: ['tests/**/*.test.ts', 'tests/**/*.spec.ts'],
+    files: ['tests/**/*.ts'],
     plugins: {
       vitest,
     },
@@ -176,6 +188,10 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/await-thenable': 'off',
+      '@typescript-eslint/no-empty-function': 'off',
+      '@typescript-eslint/require-await': 'off',
       'no-console': 'off',
     },
   },

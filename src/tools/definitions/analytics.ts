@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 import type { OutputArgs, ToolDefinition } from '../tool-definitions.js';
 
+/** Analytics API tools for seller traffic and performance reporting. */
 export const analyticsTools: ToolDefinition[] = [
   {
     name: 'ebay_get_traffic_report',

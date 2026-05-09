@@ -30,6 +30,7 @@ import {
   veroReportDataSchema,
 } from './schemas.js';
 
+/** JSON-schema-like output contract attached to a tool definition. */
 export interface OutputArgs {
   [x: string]: unknown;
   type: 'object';
@@ -37,6 +38,7 @@ export interface OutputArgs {
   required?: string[];
 }
 
+/** Optional MCP annotations that describe tool execution behavior to clients. */
 export interface ToolAnnotations {
   [x: string]: unknown;
   title?: string;
@@ -46,6 +48,7 @@ export interface ToolAnnotations {
   openWorldHint?: boolean;
 }
 
+/** Public definition for a tool, including name, schemas, metadata, and annotations. */
 export interface ToolDefinition {
   name: string;
   description: string;
@@ -56,6 +59,7 @@ export interface ToolDefinition {
   _meta?: Record<string, unknown>;
 }
 
+/** ChatGPT connector and OAuth utility tool definitions. */
 export const chatGptTools: ToolDefinition[] = [
   {
     name: 'search',
@@ -316,6 +320,7 @@ export const chatGptTools: ToolDefinition[] = [
   },
 ];
 
+/** Legacy Account Management tool definitions kept for compatibility. */
 export const accountTools: ToolDefinition[] = [
   {
     name: 'ebay_get_custom_policies',
@@ -1164,6 +1169,7 @@ export const accountTools: ToolDefinition[] = [
   },
 ];
 
+/** Legacy Inventory API tool definitions kept for compatibility. */
 export const inventoryTools: ToolDefinition[] = [
   {
     name: 'ebay_get_inventory_items',
@@ -1883,6 +1889,7 @@ export const inventoryTools: ToolDefinition[] = [
   },
 ];
 
+/** Legacy Fulfillment API tool definitions kept for compatibility. */
 export const fulfillmentTools: ToolDefinition[] = [
   {
     name: 'ebay_get_orders',
@@ -2044,6 +2051,7 @@ export const fulfillmentTools: ToolDefinition[] = [
   },
 ];
 
+/** Legacy Marketing API tool definitions kept for compatibility. */
 export const marketingTools: ToolDefinition[] = [
   {
     name: 'ebay_get_campaigns',
@@ -2312,6 +2320,7 @@ export const marketingTools: ToolDefinition[] = [
   },
 ];
 
+/** Legacy Analytics API tool definitions kept for compatibility. */
 export const analyticsTools: ToolDefinition[] = [
   {
     name: 'ebay_get_traffic_report',
@@ -2411,6 +2420,7 @@ export const analyticsTools: ToolDefinition[] = [
   },
 ];
 
+/** Legacy Metadata API tool definitions kept for compatibility. */
 export const metadataTools: ToolDefinition[] = [
   {
     name: 'ebay_get_automotive_parts_compatibility_policies',
@@ -2941,6 +2951,7 @@ export const metadataTools: ToolDefinition[] = [
   },
 ];
 
+/** Legacy Taxonomy API tool definitions kept for compatibility. */
 export const taxonomyTools: ToolDefinition[] = [
   {
     name: 'ebay_get_default_category_tree_id',
@@ -3038,6 +3049,7 @@ export const taxonomyTools: ToolDefinition[] = [
   },
 ];
 
+/** Legacy Communication API tool definitions kept for compatibility. */
 export const communicationTools: ToolDefinition[] = [
   {
     name: 'ebay_get_offers_to_buyers',
@@ -3373,6 +3385,7 @@ export const communicationTools: ToolDefinition[] = [
   },
 ];
 
+/** Legacy miscellaneous eBay API tool definitions kept for compatibility. */
 export const otherApiTools: ToolDefinition[] = [
   {
     name: 'ebay_get_user',
@@ -3663,6 +3676,7 @@ export const otherApiTools: ToolDefinition[] = [
   },
 ];
 
+/** Legacy Claude utility tool definitions kept for compatibility. */
 export const claudeTools: ToolDefinition[] = [
   {
     name: 'SearchClaudeCodeDocs',

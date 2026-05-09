@@ -7,6 +7,9 @@ import { join } from 'path';
 import { execSync } from 'child_process';
 import chalk from 'chalk';
 
+/**
+ * Outcome of a pre-flight security or environment check.
+ */
 export interface SecurityCheckResult {
   check: string;
   passed: boolean;
@@ -111,7 +114,7 @@ export async function checkNetworkConnectivity(): Promise<SecurityCheckResult> {
       severity: 'warning',
       fix: 'Check your internet connection and firewall settings',
     };
-  } catch (error) {
+  } catch {
     return {
       check: 'Network Connectivity',
       passed: false,

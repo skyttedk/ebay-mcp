@@ -200,6 +200,9 @@ const orderSchema = z.object({
   totalMarketplaceFee: amountSchema.optional(),
 });
 
+/**
+ * Validates the Fulfillment API get orders request payload.
+ */
 export const getOrdersInputSchema = z.object({
   filter: z
     .string()
@@ -210,6 +213,9 @@ export const getOrdersInputSchema = z.object({
   orderIds: z.string().optional().describe('Comma-separated list of order IDs'),
 });
 
+/**
+ * Validates the Fulfillment API get orders response payload.
+ */
 export const getOrdersOutputSchema = z.object({
   orders: z.array(orderSchema).optional(),
   href: z.string().optional(),
@@ -221,10 +227,16 @@ export const getOrdersOutputSchema = z.object({
   warnings: z.array(errorSchema).optional(),
 });
 
+/**
+ * Validates the Fulfillment API get order request payload.
+ */
 export const getOrderInputSchema = z.object({
   orderId: z.string().describe('The unique identifier of the order'),
 });
 
+/**
+ * Validates the Fulfillment API get order response payload.
+ */
 export const getOrderOutputSchema = orderSchema.extend({
   warnings: z.array(errorSchema).optional(),
 });
@@ -233,6 +245,9 @@ export const getOrderOutputSchema = orderSchema.extend({
 // Shipping Fulfillment Schemas
 // ============================================================================
 
+/**
+ * Validates the Fulfillment API create shipping fulfillment request payload.
+ */
 export const createShippingFulfillmentInputSchema = z.object({
   orderId: z.string().describe('The unique identifier of the order'),
   fulfillment: z.object({
@@ -250,15 +265,24 @@ export const createShippingFulfillmentInputSchema = z.object({
   }),
 });
 
+/**
+ * Validates the Fulfillment API create shipping fulfillment response payload.
+ */
 export const createShippingFulfillmentOutputSchema = z.object({
   fulfillmentId: z.string().optional(),
   warnings: z.array(errorSchema).optional(),
 });
 
+/**
+ * Validates the Fulfillment API get shipping fulfillments request payload.
+ */
 export const getShippingFulfillmentsInputSchema = z.object({
   orderId: z.string().describe('The unique identifier of the order'),
 });
 
+/**
+ * Validates the Fulfillment API get shipping fulfillments response payload.
+ */
 export const getShippingFulfillmentsOutputSchema = z.object({
   fulfillments: z.array(shippingFulfillmentSchema).optional(),
   warnings: z.array(errorSchema).optional(),
@@ -279,6 +303,9 @@ const lineItemRefundSchema = z.object({
     .optional(),
 });
 
+/**
+ * Validates the Fulfillment API issue refund request payload.
+ */
 export const issueRefundInputSchema = z.object({
   orderId: z.string().describe('The unique identifier of the order'),
   refundData: z.object({
@@ -291,6 +318,9 @@ export const issueRefundInputSchema = z.object({
   }),
 });
 
+/**
+ * Validates the Fulfillment API issue refund response payload.
+ */
 export const issueRefundOutputSchema = z.object({
   refundId: z.string().optional(),
   refundStatus: z.string().optional(),
@@ -337,6 +367,9 @@ const paymentDisputeSchema = z.object({
     .optional(),
 });
 
+/**
+ * Validates the Fulfillment API get payment disputes request payload.
+ */
 export const getPaymentDisputesInputSchema = z.object({
   orderIds: z.string().optional().describe('Comma-separated list of order IDs'),
   buyerUsername: z.string().optional().describe('Filter by buyer username'),
@@ -346,6 +379,9 @@ export const getPaymentDisputesInputSchema = z.object({
   offset: z.number().optional().describe('Number of disputes to skip'),
 });
 
+/**
+ * Validates the Fulfillment API get payment disputes response payload.
+ */
 export const getPaymentDisputesOutputSchema = z.object({
   paymentDisputes: z.array(paymentDisputeSchema).optional(),
   href: z.string().optional(),

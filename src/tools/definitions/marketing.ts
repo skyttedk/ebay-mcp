@@ -32,6 +32,7 @@ const genericSuccessSchema = zodToJsonSchema(baseResponseSchema, {
 const limitSchema = z.number().optional().describe('Maximum number of results to return');
 const offsetSchema = z.number().optional().describe('Number of results to skip');
 
+/** Marketing API tools for campaigns, ad reports, promotions, and listing recommendations. */
 export const marketingTools: ToolDefinition[] = [
   // ========================================
   // CAMPAIGN MANAGEMENT (11 tools)
@@ -729,6 +730,7 @@ export const marketingTools: ToolDefinition[] = [
     description:
       'Create a campaign-level negative keyword. Prevents ads from showing for this keyword across entire campaign.',
     inputSchema: {
+      campaignId: campaignIdSchema,
       negativeKeyword: z
         .object({
           keywordText: z.string().describe('Negative keyword text'),
@@ -741,6 +743,7 @@ export const marketingTools: ToolDefinition[] = [
     name: 'ebay_get_campaign_negative_keyword',
     description: 'Get details of a specific campaign-level negative keyword.',
     inputSchema: {
+      campaignId: campaignIdSchema,
       negativeKeywordId: negativeKeywordIdSchema,
     },
   },
@@ -748,7 +751,7 @@ export const marketingTools: ToolDefinition[] = [
     name: 'ebay_get_campaign_negative_keywords',
     description: 'Get all campaign-level negative keywords.',
     inputSchema: {
-      campaignIds: z.string().optional().describe('Comma-separated campaign IDs to filter by'),
+      campaignId: campaignIdSchema,
       limit: limitSchema,
       offset: offsetSchema,
     },
@@ -757,6 +760,7 @@ export const marketingTools: ToolDefinition[] = [
     name: 'ebay_delete_campaign_negative_keyword',
     description: 'Delete a campaign-level negative keyword.',
     inputSchema: {
+      campaignId: campaignIdSchema,
       negativeKeywordId: negativeKeywordIdSchema,
     },
   },
@@ -764,6 +768,7 @@ export const marketingTools: ToolDefinition[] = [
     name: 'ebay_update_campaign_negative_keyword',
     description: 'Update a campaign-level negative keyword.',
     inputSchema: {
+      campaignId: campaignIdSchema,
       negativeKeywordId: negativeKeywordIdSchema,
       updateData: z
         .object({
@@ -777,6 +782,7 @@ export const marketingTools: ToolDefinition[] = [
     name: 'ebay_bulk_create_campaign_negative_keywords',
     description: 'Create multiple campaign-level negative keywords.',
     inputSchema: {
+      campaignId: campaignIdSchema,
       negativeKeywords: z
         .object({
           requests: z
@@ -796,6 +802,7 @@ export const marketingTools: ToolDefinition[] = [
     name: 'ebay_bulk_update_campaign_negative_keywords',
     description: 'Update multiple campaign-level negative keywords.',
     inputSchema: {
+      campaignId: campaignIdSchema,
       negativeKeywords: z
         .object({
           requests: z
@@ -818,6 +825,7 @@ export const marketingTools: ToolDefinition[] = [
     name: 'ebay_bulk_delete_campaign_negative_keywords',
     description: 'Delete multiple campaign-level negative keywords.',
     inputSchema: {
+      campaignId: campaignIdSchema,
       negativeKeywords: z
         .object({
           negativeKeywordIds: z

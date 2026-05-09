@@ -4,6 +4,9 @@
 
 import { type LocaleEnum } from './ebay-enums.js';
 
+/**
+ * Runtime configuration required to authenticate eBay API clients.
+ */
 export interface EbayConfig {
   clientId: string;
   clientSecret: string;
@@ -79,6 +82,9 @@ export interface StoredTokenData {
   scope?: string; // Optional scope string
 }
 
+/**
+ * Standard wrapper for successful eBay API responses and optional warnings.
+ */
 export interface EbayApiResponse<T = unknown> {
   data: T;
   warnings?: {
@@ -89,6 +95,9 @@ export interface EbayApiResponse<T = unknown> {
   }[];
 }
 
+/**
+ * Standard error payload returned by eBay APIs.
+ */
 export interface EbayApiError {
   errors: {
     errorId: number;
@@ -154,6 +163,9 @@ export enum EbayApi {
   EDELIVERY = 'sell/logistics/v1',
 }
 
+/**
+ * OAuth scopes requested for production eBay authorization flows.
+ */
 export const productionScopes = [
   'https://api.ebay.com/oauth/api_scope',
   'https://api.ebay.com/oauth/api_scope/sell.marketing.readonly',
@@ -183,6 +195,9 @@ export const productionScopes = [
   'https://api.ebay.com/oauth/api_scope/commerce.feedback.readonly',
 ];
 
+/**
+ * OAuth scopes requested for sandbox eBay authorization flows.
+ */
 export const sandboxScopes = [
   'https://api.ebay.com/oauth/api_scope',
   'https://api.ebay.com/oauth/api_scope/sell.marketing.readonly',

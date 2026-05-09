@@ -12,6 +12,9 @@ import { getOAuthAuthorizationUrl } from '../config/environment.js';
 import { parseEnvFile } from './env-parser.js';
 import type { EbayConfig } from '../types/ebay.js';
 
+/**
+ * Result for one setup validation test.
+ */
 export interface ValidationResult {
   test: string;
   passed: boolean;
@@ -19,6 +22,9 @@ export interface ValidationResult {
   error?: string;
 }
 
+/**
+ * Aggregate result returned after all setup validation tests run.
+ */
 export interface ValidationSummary {
   totalTests: number;
   passed: number;

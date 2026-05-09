@@ -154,6 +154,9 @@ export interface TokenExpiryValidation {
   recommendations: string[];
 }
 
+/**
+ * Validate access and refresh token expiry timestamps and return renewal guidance.
+ */
 export function validateTokenExpiry(
   accessTokenExpiry: number,
   refreshTokenExpiry: number

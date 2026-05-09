@@ -7,6 +7,9 @@ import type { Router } from 'express';
 import { Router as createRouter } from 'express';
 import type { ProtectedResourceMetadata, OAuthServerMetadata } from './oauth-types.js';
 
+/**
+ * Inputs for the MCP OAuth protected-resource metadata endpoints.
+ */
 export interface MetadataConfig {
   /**
    * Resource server URL (e.g., "http://localhost:3000")

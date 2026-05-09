@@ -1,5 +1,14 @@
 import type { EbayApiClient } from '../client.js';
-import { assertRequiredString, getPathWithContextError } from './shared.js';
+import {
+  buildContinuationParams,
+  deleteWithApiError,
+  getWithApiError,
+  postWithApiError,
+  putWithApiError,
+  requireObject,
+  requireString,
+  type QueryParams,
+} from '../shared/request.js';
 
 /**
  * Notification API - Event notifications and subscriptions
@@ -10,18 +19,47 @@ export class NotificationApi {
 
   constructor(private client: EbayApiClient) {}
 
+  private path(endpoint: string): string {
+    return `${this.basePath}${endpoint}`;
+  }
+
+  private async get(endpoint: string, failureMessage: string, params?: QueryParams) {
+    return await getWithApiError(this.client, this.path(endpoint), failureMessage, params);
+  }
+
+  private async post(endpoint: string, failureMessage: string, body?: unknown) {
+    return await postWithApiError(this.client, this.path(endpoint), failureMessage, body);
+  }
+
+  private async put(endpoint: string, failureMessage: string, body?: unknown) {
+    return await putWithApiError(this.client, this.path(endpoint), failureMessage, body);
+  }
+
+  private async delete(endpoint: string, failureMessage: string) {
+    return await deleteWithApiError(this.client, this.path(endpoint), failureMessage);
+  }
+
+  private async getContinuation(
+    endpoint: string,
+    failureMessage: string,
+    limit?: number,
+    continuationToken?: string
+  ) {
+    return await this.get(
+      endpoint,
+      failureMessage,
+      buildContinuationParams(limit, continuationToken)
+    );
+  }
+
   /**
    * Get public key for validating notifications
    * @param publicKeyId Public key identifier.
    * @throws Error if required parameters are missing or invalid
    */
   async getPublicKey(publicKeyId: string) {
-    assertRequiredString(publicKeyId, 'publicKeyId');
-    return await getPathWithContextError(
-      this.client,
-      `${this.basePath}/public_key/${publicKeyId}`,
-      'Failed to get public key'
-    );
+    requireString(publicKeyId, 'publicKeyId');
+    return await this.get(`/public_key/${publicKeyId}`, 'Failed to get public key');
   }
 
   /**
@@ -29,7 +67,7 @@ export class NotificationApi {
    * @throws Error if the request fails
    */
   async getConfig() {
-    return await getPathWithContextError(this.client, `${this.basePath}/config`, 'Failed to get config');
+    return await this.get('/config', 'Failed to get config');
   }
 
   /**
@@ -37,17 +75,8 @@ export class NotificationApi {
    * @throws Error if required parameters are missing or invalid
    */
   async updateConfig(config: Record<string, unknown>) {
-    if (!config || typeof config !== 'object') {
-      throw new Error('config is required and must be an object');
-    }
-
-    try {
-      return await this.client.put(`${this.basePath}/config`, config);
-    } catch (error) {
-      throw new Error(
-        `Failed to update config: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    requireObject(config, 'config');
+    return await this.put('/config', 'Failed to update config', config);
   }
 
   /**
@@ -55,17 +84,12 @@ export class NotificationApi {
    * @throws Error if the request fails
    */
   async getDestinations(limit?: number, continuationToken?: string) {
-    const params: Record<string, string> = {};
-    if (limit !== undefined) params.limit = String(limit);
-    if (continuationToken) params.continuation_token = continuationToken;
-
-    try {
-      return await this.client.get(`${this.basePath}/destination`, params);
-    } catch (error) {
-      throw new Error(
-        `Failed to get destinations: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await this.getContinuation(
+      '/destination',
+      'Failed to get destinations',
+      limit,
+      continuationToken
+    );
   }
 
   /**
@@ -74,12 +98,8 @@ export class NotificationApi {
    * @throws Error if required parameters are missing or invalid
    */
   async getDestination(destinationId: string) {
-    assertRequiredString(destinationId, 'destinationId');
-    return await getPathWithContextError(
-      this.client,
-      `${this.basePath}/destination/${destinationId}`,
-      'Failed to get destination'
-    );
+    requireString(destinationId, 'destinationId');
+    return await this.get(`/destination/${destinationId}`, 'Failed to get destination');
   }
 
   /**
@@ -87,17 +107,8 @@ export class NotificationApi {
    * @throws Error if required parameters are missing or invalid
    */
   async createDestination(destination: Record<string, unknown>) {
-    if (!destination || typeof destination !== 'object') {
-      throw new Error('destination is required and must be an object');
-    }
-
-    try {
-      return await this.client.post(`${this.basePath}/destination`, destination);
-    } catch (error) {
-      throw new Error(
-        `Failed to create destination: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    requireObject(destination, 'destination');
+    return await this.post('/destination', 'Failed to create destination', destination);
   }
 
   /**
@@ -105,20 +116,13 @@ export class NotificationApi {
    * @throws Error if required parameters are missing or invalid
    */
   async updateDestination(destinationId: string, destination: Record<string, unknown>) {
-    if (!destinationId || typeof destinationId !== 'string') {
-      throw new Error('destinationId is required and must be a string');
-    }
-    if (!destination || typeof destination !== 'object') {
-      throw new Error('destination is required and must be an object');
-    }
-
-    try {
-      return await this.client.put(`${this.basePath}/destination/${destinationId}`, destination);
-    } catch (error) {
-      throw new Error(
-        `Failed to update destination: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    requireString(destinationId, 'destinationId');
+    requireObject(destination, 'destination');
+    return await this.put(
+      `/destination/${destinationId}`,
+      'Failed to update destination',
+      destination
+    );
   }
 
   /**
@@ -126,17 +130,8 @@ export class NotificationApi {
    * @throws Error if required parameters are missing or invalid
    */
   async deleteDestination(destinationId: string) {
-    if (!destinationId || typeof destinationId !== 'string') {
-      throw new Error('destinationId is required and must be a string');
-    }
-
-    try {
-      return await this.client.delete(`${this.basePath}/destination/${destinationId}`);
-    } catch (error) {
-      throw new Error(
-        `Failed to delete destination: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    requireString(destinationId, 'destinationId');
+    return await this.delete(`/destination/${destinationId}`, 'Failed to delete destination');
   }
 
   /**
@@ -145,28 +140,12 @@ export class NotificationApi {
    * @throws Error if the request fails
    */
   async getSubscriptions(limit?: number, continuationToken?: string) {
-    const params: Record<string, string | number> = {};
-
-    if (limit !== undefined) {
-      if (typeof limit !== 'number' || limit < 1) {
-        throw new Error('limit must be a positive number when provided');
-      }
-      params.limit = limit;
-    }
-    if (continuationToken !== undefined) {
-      if (typeof continuationToken !== 'string') {
-        throw new Error('continuationToken must be a string when provided');
-      }
-      params.continuation_token = continuationToken;
-    }
-
-    try {
-      return await this.client.get(`${this.basePath}/subscription`, params);
-    } catch (error) {
-      throw new Error(
-        `Failed to get subscriptions: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await this.getContinuation(
+      '/subscription',
+      'Failed to get subscriptions',
+      limit,
+      continuationToken
+    );
   }
 
   /**
@@ -175,17 +154,8 @@ export class NotificationApi {
    * @throws Error if required parameters are missing or invalid
    */
   async createSubscription(subscription: Record<string, unknown>) {
-    if (!subscription || typeof subscription !== 'object') {
-      throw new Error('subscription is required and must be an object');
-    }
-
-    try {
-      return await this.client.post(`${this.basePath}/subscription`, subscription);
-    } catch (error) {
-      throw new Error(
-        `Failed to create subscription: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    requireObject(subscription, 'subscription');
+    return await this.post('/subscription', 'Failed to create subscription', subscription);
   }
 
   /**
@@ -195,12 +165,8 @@ export class NotificationApi {
    * @throws Error if required parameters are missing or invalid
    */
   async getSubscription(subscriptionId: string) {
-    assertRequiredString(subscriptionId, 'subscriptionId');
-    return await getPathWithContextError(
-      this.client,
-      `${this.basePath}/subscription/${subscriptionId}`,
-      'Failed to get subscription'
-    );
+    requireString(subscriptionId, 'subscriptionId');
+    return await this.get(`/subscription/${subscriptionId}`, 'Failed to get subscription');
   }
 
   /**
@@ -209,20 +175,13 @@ export class NotificationApi {
    * @throws Error if required parameters are missing or invalid
    */
   async updateSubscription(subscriptionId: string, subscription: Record<string, unknown>) {
-    if (!subscriptionId || typeof subscriptionId !== 'string') {
-      throw new Error('subscriptionId is required and must be a string');
-    }
-    if (!subscription || typeof subscription !== 'object') {
-      throw new Error('subscription is required and must be an object');
-    }
-
-    try {
-      return await this.client.put(`${this.basePath}/subscription/${subscriptionId}`, subscription);
-    } catch (error) {
-      throw new Error(
-        `Failed to update subscription: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    requireString(subscriptionId, 'subscriptionId');
+    requireObject(subscription, 'subscription');
+    return await this.put(
+      `/subscription/${subscriptionId}`,
+      'Failed to update subscription',
+      subscription
+    );
   }
 
   /**
@@ -231,17 +190,8 @@ export class NotificationApi {
    * @throws Error if required parameters are missing or invalid
    */
   async deleteSubscription(subscriptionId: string) {
-    if (!subscriptionId || typeof subscriptionId !== 'string') {
-      throw new Error('subscriptionId is required and must be a string');
-    }
-
-    try {
-      return await this.client.delete(`${this.basePath}/subscription/${subscriptionId}`);
-    } catch (error) {
-      throw new Error(
-        `Failed to delete subscription: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    requireString(subscriptionId, 'subscriptionId');
+    return await this.delete(`/subscription/${subscriptionId}`, 'Failed to delete subscription');
   }
 
   /**
@@ -250,17 +200,12 @@ export class NotificationApi {
    * @throws Error if required parameters are missing or invalid
    */
   async disableSubscription(subscriptionId: string) {
-    if (!subscriptionId || typeof subscriptionId !== 'string') {
-      throw new Error('subscriptionId is required and must be a string');
-    }
-
-    try {
-      return await this.client.post(`${this.basePath}/subscription/${subscriptionId}/disable`, {});
-    } catch (error) {
-      throw new Error(
-        `Failed to disable subscription: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    requireString(subscriptionId, 'subscriptionId');
+    return await this.post(
+      `/subscription/${subscriptionId}/disable`,
+      'Failed to disable subscription',
+      {}
+    );
   }
 
   /**
@@ -269,17 +214,12 @@ export class NotificationApi {
    * @throws Error if required parameters are missing or invalid
    */
   async enableSubscription(subscriptionId: string) {
-    if (!subscriptionId || typeof subscriptionId !== 'string') {
-      throw new Error('subscriptionId is required and must be a string');
-    }
-
-    try {
-      return await this.client.post(`${this.basePath}/subscription/${subscriptionId}/enable`, {});
-    } catch (error) {
-      throw new Error(
-        `Failed to enable subscription: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    requireString(subscriptionId, 'subscriptionId');
+    return await this.post(
+      `/subscription/${subscriptionId}/enable`,
+      'Failed to enable subscription',
+      {}
+    );
   }
 
   /**
@@ -288,17 +228,12 @@ export class NotificationApi {
    * @throws Error if required parameters are missing or invalid
    */
   async testSubscription(subscriptionId: string) {
-    if (!subscriptionId || typeof subscriptionId !== 'string') {
-      throw new Error('subscriptionId is required and must be a string');
-    }
-
-    try {
-      return await this.client.post(`${this.basePath}/subscription/${subscriptionId}/test`, {});
-    } catch (error) {
-      throw new Error(
-        `Failed to test subscription: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    requireString(subscriptionId, 'subscriptionId');
+    return await this.post(
+      `/subscription/${subscriptionId}/test`,
+      'Failed to test subscription',
+      {}
+    );
   }
 
   /**
@@ -308,12 +243,8 @@ export class NotificationApi {
    * @throws Error if required parameters are missing or invalid
    */
   async getTopic(topicId: string) {
-    assertRequiredString(topicId, 'topicId');
-    return await getPathWithContextError(
-      this.client,
-      `${this.basePath}/topic/${topicId}`,
-      'Failed to get topic'
-    );
+    requireString(topicId, 'topicId');
+    return await this.get(`/topic/${topicId}`, 'Failed to get topic');
   }
 
   /**
@@ -322,28 +253,7 @@ export class NotificationApi {
    * @throws Error if the request fails
    */
   async getTopics(limit?: number, continuationToken?: string) {
-    const params: Record<string, string | number> = {};
-
-    if (limit !== undefined) {
-      if (typeof limit !== 'number' || limit < 1) {
-        throw new Error('limit must be a positive number when provided');
-      }
-      params.limit = limit;
-    }
-    if (continuationToken !== undefined) {
-      if (typeof continuationToken !== 'string') {
-        throw new Error('continuationToken must be a string when provided');
-      }
-      params.continuation_token = continuationToken;
-    }
-
-    try {
-      return await this.client.get(`${this.basePath}/topic`, params);
-    } catch (error) {
-      throw new Error(
-        `Failed to get topics: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await this.getContinuation('/topic', 'Failed to get topics', limit, continuationToken);
   }
 
   /**
@@ -352,23 +262,13 @@ export class NotificationApi {
    * @throws Error if required parameters are missing or invalid
    */
   async createSubscriptionFilter(subscriptionId: string, filter: Record<string, unknown>) {
-    if (!subscriptionId || typeof subscriptionId !== 'string') {
-      throw new Error('subscriptionId is required and must be a string');
-    }
-    if (!filter || typeof filter !== 'object') {
-      throw new Error('filter is required and must be an object');
-    }
-
-    try {
-      return await this.client.post(
-        `${this.basePath}/subscription/${subscriptionId}/filter`,
-        filter
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to create subscription filter: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    requireString(subscriptionId, 'subscriptionId');
+    requireObject(filter, 'filter');
+    return await this.post(
+      `/subscription/${subscriptionId}/filter`,
+      'Failed to create subscription filter',
+      filter
+    );
   }
 
   /**
@@ -377,22 +277,12 @@ export class NotificationApi {
    * @throws Error if required parameters are missing or invalid
    */
   async getSubscriptionFilter(subscriptionId: string, filterId: string) {
-    if (!subscriptionId || typeof subscriptionId !== 'string') {
-      throw new Error('subscriptionId is required and must be a string');
-    }
-    if (!filterId || typeof filterId !== 'string') {
-      throw new Error('filterId is required and must be a string');
-    }
-
-    try {
-      return await this.client.get(
-        `${this.basePath}/subscription/${subscriptionId}/filter/${filterId}`
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get subscription filter: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    requireString(subscriptionId, 'subscriptionId');
+    requireString(filterId, 'filterId');
+    return await this.get(
+      `/subscription/${subscriptionId}/filter/${filterId}`,
+      'Failed to get subscription filter'
+    );
   }
 
   /**
@@ -401,21 +291,11 @@ export class NotificationApi {
    * @throws Error if required parameters are missing or invalid
    */
   async deleteSubscriptionFilter(subscriptionId: string, filterId: string) {
-    if (!subscriptionId || typeof subscriptionId !== 'string') {
-      throw new Error('subscriptionId is required and must be a string');
-    }
-    if (!filterId || typeof filterId !== 'string') {
-      throw new Error('filterId is required and must be a string');
-    }
-
-    try {
-      return await this.client.delete(
-        `${this.basePath}/subscription/${subscriptionId}/filter/${filterId}`
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to delete subscription filter: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    requireString(subscriptionId, 'subscriptionId');
+    requireString(filterId, 'filterId');
+    return await this.delete(
+      `/subscription/${subscriptionId}/filter/${filterId}`,
+      'Failed to delete subscription filter'
+    );
   }
 }

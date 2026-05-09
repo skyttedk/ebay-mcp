@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 import { shippingQuoteRequestSchema, veroReportDataSchema } from '../schemas.js';
 import type { OutputArgs, ToolDefinition } from '../tool-definitions.js';
 
+/** Miscellaneous eBay API tools that do not fit the primary seller API categories. */
 export const otherApiTools: ToolDefinition[] = [
   // Identity API
   {
@@ -303,6 +303,7 @@ export const otherApiTools: ToolDefinition[] = [
   },
 ];
 
+/** Claude-facing utility tools for fetch, prompt, artifact, and completion helpers. */
 export const claudeTools: ToolDefinition[] = [
   {
     name: 'SearchClaudeCodeDocs',

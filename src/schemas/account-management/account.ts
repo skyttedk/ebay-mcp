@@ -5,7 +5,6 @@ import {
   RegionType,
   ShippingCostType,
   ShippingOptionType,
-  DepositType,
   RefundMethod,
   ReturnMethod,
   ReturnShippingCostPayer,
@@ -64,6 +63,9 @@ const regionSetSchema = z.object({
 // ============================================================================
 
 // Input
+/**
+ * Validates the Account Management API get custom policies request payload.
+ */
 export const getCustomPoliciesInputSchema = z.object({
   policyTypes: z
     .string()
@@ -74,6 +76,9 @@ export const getCustomPoliciesInputSchema = z.object({
 });
 
 // Output
+/**
+ * Validates the Account Management API custom policy model.
+ */
 export const customPolicySchema = z.object({
   customPolicyId: z.string().optional(),
   label: z.string().optional(),
@@ -82,6 +87,9 @@ export const customPolicySchema = z.object({
   policyType: z.string().optional(),
 });
 
+/**
+ * Validates the Account Management API custom policy response payload.
+ */
 export const customPolicyResponseSchema = z.object({
   customPolicies: z.array(customPolicySchema).optional(),
   href: z.string().optional(),
@@ -93,6 +101,9 @@ export const customPolicyResponseSchema = z.object({
   warnings: z.array(errorSchema).optional(),
 });
 
+/**
+ * Validates the Account Management API create custom policy request payload.
+ */
 export const createCustomPolicyInputSchema = z.object({
   policy: z.object({
     name: z.string(),
@@ -102,6 +113,9 @@ export const createCustomPolicyInputSchema = z.object({
   }),
 });
 
+/**
+ * Validates the Account Management API create custom policy response payload.
+ */
 export const createCustomPolicyOutputSchema = customPolicySchema;
 
 // ============================================================================
@@ -138,6 +152,9 @@ const shippingOptionSchema = z.object({
   shippingServices: z.array(shippingServiceSchema).optional(),
 });
 
+/**
+ * Validates the Account Management API fulfillment policy model.
+ */
 export const fulfillmentPolicySchema = z.object({
   name: z.string(),
   marketplaceId: z.nativeEnum(MarketplaceId),
@@ -152,6 +169,9 @@ export const fulfillmentPolicySchema = z.object({
   shipToLocations: regionSetSchema.optional(),
 });
 
+/**
+ * Validates the Account Management API fulfillment policy response payload.
+ */
 export const fulfillmentPolicyResponseSchema = z.object({
   fulfillmentPolicyId: z.string().optional(),
   categoryTypes: z.array(categoryTypeSchema).optional(),
@@ -168,10 +188,16 @@ export const fulfillmentPolicyResponseSchema = z.object({
   warnings: z.array(errorSchema).optional(),
 });
 
+/**
+ * Validates the Account Management API get fulfillment policies request payload.
+ */
 export const getFulfillmentPoliciesInputSchema = z.object({
   marketplaceId: z.nativeEnum(MarketplaceId).describe('eBay marketplace ID (e.g., EBAY_US)'),
 });
 
+/**
+ * Validates the Account Management API get fulfillment policies response payload.
+ */
 export const getFulfillmentPoliciesOutputSchema = z.object({
   fulfillmentPolicies: z.array(fulfillmentPolicyResponseSchema).optional(),
   href: z.string().optional(),
@@ -183,10 +209,16 @@ export const getFulfillmentPoliciesOutputSchema = z.object({
   warnings: z.array(errorSchema).optional(),
 });
 
+/**
+ * Validates the Account Management API create fulfillment policy request payload.
+ */
 export const createFulfillmentPolicyInputSchema = z.object({
   policy: fulfillmentPolicySchema,
 });
 
+/**
+ * Validates the Account Management API create fulfillment policy response payload.
+ */
 export const createFulfillmentPolicyOutputSchema = z.object({
   fulfillmentPolicyId: z.string().optional(),
   warnings: z.array(errorSchema).optional(),
@@ -213,6 +245,9 @@ const depositSchema = z.object({
   paymentMethods: z.array(paymentMethodSchema).optional(), // DEPRECATED but in API
 });
 
+/**
+ * Validates the Account Management API payment policy model.
+ */
 export const paymentPolicySchema = z.object({
   name: z.string(),
   marketplaceId: z.nativeEnum(MarketplaceId),
@@ -225,6 +260,9 @@ export const paymentPolicySchema = z.object({
   paymentMethods: z.array(paymentMethodSchema).optional(),
 });
 
+/**
+ * Validates the Account Management API payment policy response payload.
+ */
 export const paymentPolicyResponseSchema = z.object({
   paymentPolicyId: z.string().optional(),
   categoryTypes: z.array(categoryTypeSchema).optional(),
@@ -239,10 +277,16 @@ export const paymentPolicyResponseSchema = z.object({
   warnings: z.array(errorSchema).optional(),
 });
 
+/**
+ * Validates the Account Management API get payment policies request payload.
+ */
 export const getPaymentPoliciesInputSchema = z.object({
   marketplaceId: z.nativeEnum(MarketplaceId).describe('eBay marketplace ID'),
 });
 
+/**
+ * Validates the Account Management API get payment policies response payload.
+ */
 export const getPaymentPoliciesOutputSchema = z.object({
   paymentPolicies: z.array(paymentPolicyResponseSchema).optional(),
   href: z.string().optional(),
@@ -254,10 +298,16 @@ export const getPaymentPoliciesOutputSchema = z.object({
   warnings: z.array(errorSchema).optional(),
 });
 
+/**
+ * Validates the Account Management API create payment policy request payload.
+ */
 export const createPaymentPolicyInputSchema = z.object({
   policy: paymentPolicySchema,
 });
 
+/**
+ * Validates the Account Management API create payment policy response payload.
+ */
 export const createPaymentPolicyOutputSchema = z.object({
   paymentPolicyId: z.string().optional(),
   warnings: z.array(errorSchema).optional(),
@@ -267,6 +317,9 @@ export const createPaymentPolicyOutputSchema = z.object({
 // Return Policy Schemas
 // ============================================================================
 
+/**
+ * Validates the Account Management API return policy model.
+ */
 export const returnPolicySchema = z.object({
   name: z.string(),
   marketplaceId: z.nativeEnum(MarketplaceId),
@@ -282,6 +335,9 @@ export const returnPolicySchema = z.object({
   returnShippingCostPayer: z.nativeEnum(ReturnShippingCostPayer).optional(),
 });
 
+/**
+ * Validates the Account Management API return policy response payload.
+ */
 export const returnPolicyResponseSchema = z.object({
   returnPolicyId: z.string().optional(),
   categoryTypes: z.array(categoryTypeSchema).optional(),
@@ -307,10 +363,16 @@ export const returnPolicyResponseSchema = z.object({
   warnings: z.array(errorSchema).optional(),
 });
 
+/**
+ * Validates the Account Management API get return policies request payload.
+ */
 export const getReturnPoliciesInputSchema = z.object({
   marketplaceId: z.nativeEnum(MarketplaceId).describe('eBay marketplace ID'),
 });
 
+/**
+ * Validates the Account Management API get return policies response payload.
+ */
 export const getReturnPoliciesOutputSchema = z.object({
   returnPolicies: z.array(returnPolicyResponseSchema).optional(),
   href: z.string().optional(),
@@ -322,10 +384,16 @@ export const getReturnPoliciesOutputSchema = z.object({
   warnings: z.array(errorSchema).optional(),
 });
 
+/**
+ * Validates the Account Management API create return policy request payload.
+ */
 export const createReturnPolicyInputSchema = z.object({
   policy: returnPolicySchema,
 });
 
+/**
+ * Validates the Account Management API create return policy response payload.
+ */
 export const createReturnPolicyOutputSchema = z.object({
   returnPolicyId: z.string().optional(),
   warnings: z.array(errorSchema).optional(),
@@ -335,11 +403,17 @@ export const createReturnPolicyOutputSchema = z.object({
 // Sales Tax Schemas
 // ============================================================================
 
+/**
+ * Validates the Account Management API sales tax base model.
+ */
 export const salesTaxBaseSchema = z.object({
   salesTaxPercentage: z.string(),
   shippingAndHandlingTaxed: z.boolean().optional(),
 });
 
+/**
+ * Validates the Account Management API sales tax model.
+ */
 export const salesTaxSchema = z.object({
   countryCode: z.string().optional(),
   jurisdictionId: z.string().optional(),
@@ -347,6 +421,9 @@ export const salesTaxSchema = z.object({
   shippingAndHandlingTaxed: z.boolean().optional(),
 });
 
+/**
+ * Validates the Account Management API get sales taxes response payload.
+ */
 export const getSalesTaxesOutputSchema = z.object({
   salesTaxes: z.array(salesTaxSchema).optional(),
   warnings: z.array(errorSchema).optional(),
@@ -356,10 +433,16 @@ export const getSalesTaxesOutputSchema = z.object({
 // Program Schemas
 // ============================================================================
 
+/**
+ * Validates the Account Management API program request model.
+ */
 export const programRequestSchema = z.object({
   programType: z.string(),
 });
 
+/**
+ * Validates the Account Management API programs response payload.
+ */
 export const programsOutputSchema = z.object({
   programs: z
     .array(
@@ -376,6 +459,9 @@ export const programsOutputSchema = z.object({
 // KYC Schemas
 // ============================================================================
 
+/**
+ * Validates the Account Management API KYC response payload.
+ */
 export const kycOutputSchema = z.object({
   kycCheck: z.string().optional(),
   detailedStatus: z.string().optional(),
@@ -386,6 +472,9 @@ export const kycOutputSchema = z.object({
 // Privileges Schemas
 // ============================================================================
 
+/**
+ * Validates the Account Management API privileges response payload.
+ */
 export const privilegesOutputSchema = z.object({
   sellingLimit: z
     .object({
