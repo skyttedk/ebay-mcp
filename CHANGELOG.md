@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Packaging** — Ship `build/mcp/**/*.js` in the published tarball. The architecture refactor in v1.8.9 moved runtime/HTTP transport into `src/mcp/`, but the `files` whitelist in `package.json` was not updated, so `npm install -g ebay-mcp@1.8.9` produced `ERR_MODULE_NOT_FOUND: Cannot find module '.../build/mcp/runtime.js'` at startup. ([#120](https://github.com/YosefHayim/ebay-mcp/issues/120))
+
 ### Changed
 
 - **API Status Docs** — Refreshed API status snapshot documentation in 5 post-`v1.8.5` pushes (`[skip ci]` docs-only updates)
