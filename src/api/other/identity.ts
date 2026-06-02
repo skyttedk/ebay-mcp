@@ -1,5 +1,6 @@
 import type { EbayApiClient } from '../client.js';
 import { getIdentityBaseUrl } from '../../config/environment.js';
+import { withApiError } from '@/api/shared/request.js';
 
 /**
  * Identity API - User identity verification
@@ -21,6 +22,6 @@ export class IdentityApi {
     const identityBaseUrl = getIdentityBaseUrl(config.environment);
     const fullUrl = `${identityBaseUrl}${this.basePath}/user`;
 
-    return await this.client.getWithFullUrl(fullUrl);
+    return await withApiError('Failed to get user', () => this.client.getWithFullUrl(fullUrl));
   }
 }

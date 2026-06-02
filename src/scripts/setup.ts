@@ -15,6 +15,7 @@ import { loadExistingConfig } from './setup-shared.js';
 import { configureLLMClient, detectLLMClients } from '../utils/llm-client-detector.js';
 import { runSecurityChecks, displaySecurityResults } from '../utils/security-checker.js';
 import { validateSetup, displayRecommendations } from '../utils/setup-validator.js';
+import { getErrorMessage } from '@/utils/errors.js';
 import type { EbayTokenCore } from '../types/ebay.js';
 
 config({ quiet: true });
@@ -267,7 +268,7 @@ function updateClaudeDesktopConfig(
         return {
           success: false,
           configPath,
-          error: `Invalid JSON in config: ${e instanceof Error ? e.message : 'parse error'}`,
+          error: `Invalid JSON in config: ${getErrorMessage(e, 'parse error')}`,
           details: 'Please fix the JSON syntax in your Claude config file',
         };
       }
@@ -306,7 +307,7 @@ function updateClaudeDesktopConfig(
     return {
       success: false,
       configPath,
-      error: error instanceof Error ? error.message : 'Unknown',
+      error: getErrorMessage(error, 'Unknown'),
     };
   }
 }

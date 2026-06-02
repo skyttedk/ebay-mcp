@@ -17,6 +17,7 @@ import { detectLLMClients } from '../utils/llm-client-detector.js';
 import { displayScopeVerification, parseScopeString } from '../utils/scope-helper.js';
 import { readEnvironment } from './setup-shared.js';
 import { EbaySellerApi } from '../api/index.js';
+import { getErrorMessage } from '@/utils/errors.js';
 import type { EbayConfig } from '../types/ebay.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -62,7 +63,7 @@ async function checkApiConnectivity(): Promise<{ canReachEbay: boolean; error?: 
   } catch (error) {
     return {
       canReachEbay: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: getErrorMessage(error),
     };
   }
 }
@@ -84,7 +85,7 @@ async function testEbayAuthentication(
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: getErrorMessage(error),
     };
   }
 }

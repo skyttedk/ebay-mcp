@@ -2,6 +2,7 @@ import type { ToolHandlerMap } from './types.js';
 import { buildCredentialDisplay, maskToken } from '@/auth/credential-session.js';
 import { getOAuthAuthorizationUrl, validateScopes } from '@/config/environment.js';
 import { convertToTimestamp, validateTokenExpiry } from '@/utils/date-converter.js';
+import { getErrorMessage } from '@/utils/errors.js';
 
 /** Handler map for OAuth token setup, refresh, validation, and status tools. */
 export const tokenManagementHandlers: ToolHandlerMap = {
@@ -123,9 +124,7 @@ export const tokenManagementHandlers: ToolHandlerMap = {
         message: `Successfully converted to timestamp: ${timestamp}ms (${new Date(timestamp).toISOString()})`,
       };
     } catch (error) {
-      throw new Error(
-        `Failed to convert date: ${error instanceof Error ? error.message : String(error)}`
-      );
+      throw new Error(`Failed to convert date: ${getErrorMessage(error, String(error))}`);
     }
   },
 
@@ -149,9 +148,7 @@ export const tokenManagementHandlers: ToolHandlerMap = {
         refreshTokenExpiryDate: new Date(refreshExpiry).toISOString(),
       };
     } catch (error) {
-      throw new Error(
-        `Failed to validate token expiry: ${error instanceof Error ? error.message : String(error)}`
-      );
+      throw new Error(`Failed to validate token expiry: ${getErrorMessage(error, String(error))}`);
     }
   },
 
@@ -203,7 +200,7 @@ export const tokenManagementHandlers: ToolHandlerMap = {
               'User tokens stored, but failed to validate/refresh access token. You may need to re-authorize.',
             tokenInfo: api.getTokenInfo(),
             refreshed: false,
-            refreshError: refreshError instanceof Error ? refreshError.message : 'Unknown error',
+            refreshError: getErrorMessage(refreshError),
           };
         }
       }
@@ -216,9 +213,7 @@ export const tokenManagementHandlers: ToolHandlerMap = {
         refreshed: false,
       };
     } catch (error) {
-      throw new Error(
-        `Failed to set user tokens: ${error instanceof Error ? error.message : String(error)}`
-      );
+      throw new Error(`Failed to set user tokens: ${getErrorMessage(error, String(error))}`);
     }
   },
 
@@ -269,7 +264,7 @@ export const tokenManagementHandlers: ToolHandlerMap = {
       };
     } catch (error) {
       throw new Error(
-        `Failed to exchange authorization code: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to exchange authorization code: ${getErrorMessage(error, String(error))}`
       );
     }
   },
@@ -309,9 +304,7 @@ export const tokenManagementHandlers: ToolHandlerMap = {
         tokenInfo: api.getTokenInfo(),
       };
     } catch (error) {
-      throw new Error(
-        `Failed to refresh access token: ${error instanceof Error ? error.message : String(error)}`
-      );
+      throw new Error(`Failed to refresh access token: ${getErrorMessage(error, String(error))}`);
     }
   },
 };

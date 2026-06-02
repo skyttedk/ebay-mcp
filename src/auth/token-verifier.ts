@@ -4,6 +4,7 @@
  */
 
 import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { getErrorMessage } from '@/utils/errors.js';
 import { describeHttpError, httpRequest, isHttpError } from '@/utils/http.js';
 import type {
   VerifiedToken,
@@ -70,9 +71,7 @@ export class TokenVerifier {
         });
         this.metadata = response.data;
       } catch (error) {
-        throw new Error(
-          `Failed to load OAuth server metadata: ${error instanceof Error ? error.message : 'Unknown error'}`
-        );
+        throw new Error(`Failed to load OAuth server metadata: ${getErrorMessage(error)}`);
       }
     } else {
       this.metadata = this.config.authServerMetadata;
@@ -241,9 +240,7 @@ export class TokenVerifier {
         subject: payload.sub,
       };
     } catch (error) {
-      throw new Error(
-        `JWT verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+      throw new Error(`JWT verification failed: ${getErrorMessage(error)}`);
     }
   }
 

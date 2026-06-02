@@ -1,5 +1,6 @@
 import type { EbayApiClient } from '../client.js';
 import { getPaginatedWithContextError, getPathWithContextError } from './shared.js';
+import { withApiError } from '@/api/shared/request.js';
 
 /**
  * Feedback API - Manage buyer and seller feedback
@@ -39,15 +40,11 @@ export class FeedbackApi {
       throw new Error('transactionId is required and must be a string');
     }
 
-    try {
-      return await this.client.get(`${this.basePath}/feedback`, {
+    return await withApiError('Failed to get feedback', () =>
+      this.client.get(`${this.basePath}/feedback`, {
         transaction_id: transactionId,
-      });
-    } catch (error) {
-      throw new Error(
-        `Failed to get feedback: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+      })
+    );
   }
 
   /**
@@ -73,13 +70,9 @@ export class FeedbackApi {
       throw new Error('feedbackData is required and must be an object');
     }
 
-    try {
-      return await this.client.post(`${this.basePath}/feedback`, feedbackData);
-    } catch (error) {
-      throw new Error(
-        `Failed to leave feedback: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await withApiError('Failed to leave feedback', () =>
+      this.client.post(`${this.basePath}/feedback`, feedbackData)
+    );
   }
 
   /**
@@ -95,16 +88,12 @@ export class FeedbackApi {
       throw new Error('responseText is required and must be a string');
     }
 
-    try {
-      return await this.client.post(`${this.basePath}/respond_to_feedback`, {
+    return await withApiError('Failed to respond to feedback', () =>
+      this.client.post(`${this.basePath}/respond_to_feedback`, {
         feedback_id: feedbackId,
         response_text: responseText,
-      });
-    } catch (error) {
-      throw new Error(
-        `Failed to respond to feedback: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+      })
+    );
   }
 
   /**

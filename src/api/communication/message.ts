@@ -5,6 +5,7 @@ import {
   getPathWithContextError,
   getWithContextError,
 } from './shared.js';
+import { withApiError } from '@/api/shared/request.js';
 
 /**
  * Message API - Buyer-seller messaging
@@ -25,13 +26,9 @@ export class MessageApi {
       throw new Error('updateData is required and must be an object');
     }
 
-    try {
-      return await this.client.post(`${this.basePath}/bulk_update_conversation`, updateData);
-    } catch (error) {
-      throw new Error(
-        `Failed to bulk update conversation: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await withApiError('Failed to bulk update conversation', () =>
+      this.client.post(`${this.basePath}/bulk_update_conversation`, updateData)
+    );
   }
 
   /**
@@ -94,13 +91,9 @@ export class MessageApi {
       throw new Error('messageData is required and must be an object');
     }
 
-    try {
-      return await this.client.post(`${this.basePath}/send_message`, messageData);
-    } catch (error) {
-      throw new Error(
-        `Failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await withApiError('Failed to send message', () =>
+      this.client.post(`${this.basePath}/send_message`, messageData)
+    );
   }
 
   /**
@@ -113,13 +106,9 @@ export class MessageApi {
       throw new Error('updateData is required and must be an object');
     }
 
-    try {
-      return await this.client.post(`${this.basePath}/update_conversation`, updateData);
-    } catch (error) {
-      throw new Error(
-        `Failed to update conversation: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await withApiError('Failed to update conversation', () =>
+      this.client.post(`${this.basePath}/update_conversation`, updateData)
+    );
   }
 
   /**

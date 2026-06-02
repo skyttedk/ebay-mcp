@@ -6,6 +6,7 @@ import {
   getWithContextError,
 } from './shared.js';
 import { buildTruthyPaginatedParams } from '../shared/query-params.js';
+import { withApiError } from '@/api/shared/request.js';
 
 /**
  * Negotiation API - Buyer-seller negotiations and offers
@@ -28,14 +29,9 @@ export class NegotiationApi {
     const eligibleItemsPath = `${this.basePath}/find_eligible_items`;
     const queryParams = buildPaginatedQueryParams(filter, limit, offset);
 
-    try {
-      const response = await this.client.get(eligibleItemsPath, queryParams);
-      return response;
-    } catch (error) {
-      throw new Error(
-        `Failed to find eligible items: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await withApiError('Failed to find eligible items', () =>
+      this.client.get(eligibleItemsPath, queryParams)
+    );
   }
 
   /**
@@ -48,13 +44,9 @@ export class NegotiationApi {
       throw new Error('offerData is required and must be an object');
     }
 
-    try {
-      return await this.client.post(`${this.basePath}/send_offer_to_interested_buyers`, offerData);
-    } catch (error) {
-      throw new Error(
-        `Failed to send offer to interested buyers: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await withApiError('Failed to send offer to interested buyers', () =>
+      this.client.post(`${this.basePath}/send_offer_to_interested_buyers`, offerData)
+    );
   }
 
   /**

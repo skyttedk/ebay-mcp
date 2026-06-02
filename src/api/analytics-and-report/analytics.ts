@@ -1,4 +1,5 @@
 import type { EbayApiClient } from '../client.js';
+import { withApiError } from '@/api/shared/request.js';
 
 /**
  * Analytics API - Sales and traffic analytics
@@ -35,13 +36,9 @@ export class AnalyticsApi {
     };
     if (sort) params.sort = sort;
 
-    try {
-      return await this.client.get(`${this.basePath}/traffic_report`, params);
-    } catch (error) {
-      throw new Error(
-        `Failed to get traffic report: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await withApiError('Failed to get traffic report', () =>
+      this.client.get(`${this.basePath}/traffic_report`, params)
+    );
   }
 
   /**
@@ -50,13 +47,9 @@ export class AnalyticsApi {
    * @throws Error if the request fails
    */
   async findSellerStandardsProfiles() {
-    try {
-      return await this.client.get(`${this.basePath}/seller_standards_profile`);
-    } catch (error) {
-      throw new Error(
-        `Failed to find seller standards profiles: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await withApiError('Failed to find seller standards profiles', () =>
+      this.client.get(`${this.basePath}/seller_standards_profile`)
+    );
   }
 
   /**
@@ -73,13 +66,9 @@ export class AnalyticsApi {
       throw new Error('cycle is required and must be a string');
     }
 
-    try {
-      return await this.client.get(`${this.basePath}/seller_standards_profile/${program}/${cycle}`);
-    } catch (error) {
-      throw new Error(
-        `Failed to get seller standards profile: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return await withApiError('Failed to get seller standards profile', () =>
+      this.client.get(`${this.basePath}/seller_standards_profile/${program}/${cycle}`)
+    );
   }
 
   /**
@@ -107,15 +96,11 @@ export class AnalyticsApi {
       evaluation_marketplace_id: evaluationMarketplaceId,
     };
 
-    try {
-      return await this.client.get(
+    return await withApiError('Failed to get customer service metric', () =>
+      this.client.get(
         `${this.basePath}/customer_service_metric/${customerServiceMetricType}/${evaluationType}`,
         params
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to get customer service metric: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+      )
+    );
   }
 }

@@ -6,6 +6,7 @@ import type { EbayConfig } from '@/types/ebay.js';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import { LocaleEnum } from '@/types/ebay-enums.js';
 import { getVersion } from '@/utils/version.js';
+import { getErrorMessage } from '@/utils/errors.js';
 
 // Get the current directory for loading scope files and .env
 const __filename = fileURLToPath(import.meta.url);
@@ -163,17 +164,13 @@ export function validateEnvironmentConfig(): {
   try {
     getProductionScopes();
   } catch (error) {
-    errors.push(
-      `Failed to load production scopes: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
+    errors.push(`Failed to load production scopes: ${getErrorMessage(error)}`);
   }
 
   try {
     getSandboxScopes();
   } catch (error) {
-    errors.push(
-      `Failed to load sandbox scopes: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
+    errors.push(`Failed to load sandbox scopes: ${getErrorMessage(error)}`);
   }
 
   const isValid = errors.length === 0;

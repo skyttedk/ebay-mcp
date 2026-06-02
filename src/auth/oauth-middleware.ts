@@ -4,6 +4,7 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
+import { getErrorMessage } from '@/utils/errors.js';
 import type { TokenVerifier } from './token-verifier.js';
 import type { VerifiedToken } from './oauth-types.js';
 
@@ -71,7 +72,7 @@ export function createBearerAuthMiddleware(config: BearerAuthMiddlewareConfig) {
         req.auth = verifiedToken;
         next();
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Token verification failed';
+        const errorMessage = getErrorMessage(error, 'Token verification failed');
 
         sendUnauthorized(res, realm, config.resourceMetadataUrl, {
           error: 'invalid_token',

@@ -49,6 +49,7 @@ import { validateSetup, displayRecommendations } from '../utils/setup-validator.
 import { loadExistingConfig, readEnvironment } from './setup-shared.js';
 import { EbaySellerApi } from '../api/index.js';
 import { EbayOAuthClient } from '../auth/oauth.js';
+import { getErrorMessage } from '@/utils/errors.js';
 import type { EbayConfig } from '../types/ebay.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -238,7 +239,7 @@ async function acquireRefreshToken(
       return tokenData.refresh_token;
     } catch (error) {
       console.log(
-        chalk.red(`✗ Failed to exchange code: ${error instanceof Error ? error.message : error}\n`)
+        chalk.red(`✗ Failed to exchange code: ${getErrorMessage(error, String(error))}\n`)
       );
       return null;
     }

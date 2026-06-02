@@ -1,4 +1,5 @@
 import type { EbayApiClient } from '@/api/client.js';
+import { withApiError } from '@/api/shared/request.js';
 
 /**
  * Translation API - Translation services
@@ -13,11 +14,13 @@ export class TranslationApi {
    * Translate listing text
    */
   async translate(from: string, to: string, translationContext: string, text: string[]) {
-    return await this.client.post(`${this.basePath}/translate`, {
-      from,
-      to,
-      translationContext,
-      text,
-    });
+    return await withApiError('Failed to translate', () =>
+      this.client.post(`${this.basePath}/translate`, {
+        from,
+        to,
+        translationContext,
+        text,
+      })
+    );
   }
 }

@@ -1,4 +1,5 @@
 import type { EbayApiClient } from '@/api/client.js';
+import { withApiError } from '@/api/shared/request.js';
 import type { components } from '@/types/sell-apps/markeitng-and-promotions/sellRecommendationV1Oas3.js';
 
 type PagedListingRecommendationCollection =
@@ -34,13 +35,15 @@ export class RecommendationApi {
       headers['X-EBAY-C-MARKETPLACE-ID'] = marketplaceId;
     }
 
-    return await this.client.post<PagedListingRecommendationCollection>(
-      `${this.basePath}/find`,
-      requestBody || {},
-      {
-        params,
-        headers,
-      }
+    return await withApiError('Failed to find listing recommendations', () =>
+      this.client.post<PagedListingRecommendationCollection>(
+        `${this.basePath}/find`,
+        requestBody || {},
+        {
+          params,
+          headers,
+        }
+      )
     );
   }
 }

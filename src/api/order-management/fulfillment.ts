@@ -1,4 +1,5 @@
 import type { components } from '@/types/sell-apps/order-management/sellFulfillmentV1Oas3.js';
+import { withApiError } from '@/api/shared/request.js';
 import type { EbayApiClient } from '../client.js';
 
 type IssueRefundRequest = components['schemas']['IssueRefundRequest'];
@@ -31,14 +32,18 @@ export class FulfillmentApi {
     if (filter) params.filter = filter;
     if (limit) params.limit = limit;
     if (offset) params.offset = offset;
-    return await this.client.get<OrderSearchPagedCollection>(`${this.basePath}/order`, params);
+    return await withApiError('Failed to get orders', () =>
+      this.client.get<OrderSearchPagedCollection>(`${this.basePath}/order`, params)
+    );
   }
 
   /**
    * Get a specific order
    */
   async getOrder(orderId: string): Promise<Order> {
-    return await this.client.get<Order>(`${this.basePath}/order/${orderId}`);
+    return await withApiError('Failed to get order', () =>
+      this.client.get<Order>(`${this.basePath}/order/${orderId}`)
+    );
   }
 
   /**
@@ -48,9 +53,8 @@ export class FulfillmentApi {
     orderId: string,
     fulfillment: ShippingFulfillmentDetails
   ): Promise<void> {
-    return await this.client.post<void>(
-      `${this.basePath}/order/${orderId}/shipping_fulfillment`,
-      fulfillment
+    return await withApiError('Failed to create shipping fulfillment', () =>
+      this.client.post<void>(`${this.basePath}/order/${orderId}/shipping_fulfillment`, fulfillment)
     );
   }
 
@@ -58,8 +62,10 @@ export class FulfillmentApi {
    * Get shipping fulfillments for an order
    */
   async getShippingFulfillments(orderId: string): Promise<ShippingFulfillmentPagedCollection> {
-    return await this.client.get<ShippingFulfillmentPagedCollection>(
-      `${this.basePath}/order/${orderId}/shipping_fulfillment`
+    return await withApiError('Failed to get shipping fulfillments', () =>
+      this.client.get<ShippingFulfillmentPagedCollection>(
+        `${this.basePath}/order/${orderId}/shipping_fulfillment`
+      )
     );
   }
 
@@ -72,8 +78,10 @@ export class FulfillmentApi {
     orderId: string,
     fulfillmentId: string
   ): Promise<ShippingFulfillment> {
-    return await this.client.get<ShippingFulfillment>(
-      `${this.basePath}/order/${orderId}/shipping_fulfillment/${fulfillmentId}`
+    return await withApiError('Failed to get shipping fulfillment', () =>
+      this.client.get<ShippingFulfillment>(
+        `${this.basePath}/order/${orderId}/shipping_fulfillment/${fulfillmentId}`
+      )
     );
   }
 
@@ -81,7 +89,9 @@ export class FulfillmentApi {
    * Issue a refund
    */
   async issueRefund(orderId: string, refund: IssueRefundRequest): Promise<Refund> {
-    return await this.client.post<Refund>(`${this.basePath}/order/${orderId}/issue_refund`, refund);
+    return await withApiError('Failed to issue refund', () =>
+      this.client.post<Refund>(`${this.basePath}/order/${orderId}/issue_refund`, refund)
+    );
   }
 
   /**
@@ -97,7 +107,9 @@ export class FulfillmentApi {
     limit?: number;
     offset?: number;
   }): Promise<unknown> {
-    return await this.client.get(`${this.basePath}/payment_dispute_summary`, params);
+    return await withApiError('Failed to get payment dispute summaries', () =>
+      this.client.get(`${this.basePath}/payment_dispute_summary`, params)
+    );
   }
 
   /**
@@ -105,7 +117,9 @@ export class FulfillmentApi {
    * Note: This method delegates to the DisputeApi
    */
   async getActivities(paymentDisputeId: string): Promise<unknown> {
-    return await this.client.get(`${this.basePath}/payment_dispute/${paymentDisputeId}/activity`);
+    return await withApiError('Failed to get activities', () =>
+      this.client.get(`${this.basePath}/payment_dispute/${paymentDisputeId}/activity`)
+    );
   }
 
   /**
@@ -113,7 +127,9 @@ export class FulfillmentApi {
    * Note: This method delegates to the DisputeApi
    */
   async getPaymentDispute(paymentDisputeId: string): Promise<unknown> {
-    return await this.client.get(`${this.basePath}/payment_dispute/${paymentDisputeId}`);
+    return await withApiError('Failed to get payment dispute', () =>
+      this.client.get(`${this.basePath}/payment_dispute/${paymentDisputeId}`)
+    );
   }
 
   /**
@@ -124,15 +140,17 @@ export class FulfillmentApi {
     shippingAddress?: unknown;
     lineItems?: unknown[];
   }): Promise<unknown> {
-    return await this.client.post(`${this.basePath}/shipping_quote`, request);
+    return await withApiError('Failed to get shipping quote', () =>
+      this.client.post(`${this.basePath}/shipping_quote`, request)
+    );
   }
 
   /**
    * Get cancellation details for an order
    */
   async getCancellation(orderId: string, cancellationId: string): Promise<unknown> {
-    return await this.client.get(
-      `${this.basePath}/order/${orderId}/cancellation/${cancellationId}`
+    return await withApiError('Failed to get cancellation', () =>
+      this.client.get(`${this.basePath}/order/${orderId}/cancellation/${cancellationId}`)
     );
   }
 }
