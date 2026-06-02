@@ -12,7 +12,13 @@ const __dirname = dirname(__filename);
 const PROJECT_ROOT = join(__dirname, '../..');
 const DOCS_DIR = join(PROJECT_ROOT, 'docs');
 const TYPES_DIR = join(PROJECT_ROOT, 'src/types');
-const TOOLS_DIR = join(PROJECT_ROOT, 'src/tools/definitions');
+// Tool definitions live under both the co-located `categories/` modules and the
+// legacy `definitions/` tree during migration; scan both recursively so the
+// coverage report stays accurate regardless of where a tool is declared.
+const TOOLS_DIRS = [
+  join(PROJECT_ROOT, 'src/tools/categories'),
+  join(PROJECT_ROOT, 'src/tools/definitions'),
+];
 
 const ui = {
   success: chalk.green,
@@ -266,24 +272,29 @@ function extractEndpointsFromSpecs(): EndpointInfo[] {
   return endpoints;
 }
 
-function getImplementedTools(): Set<string> {
-  const tools = new Set<string>();
+function collectToolNames(dir: string, tools: Set<string>): void {
+  if (!existsSync(dir)) return;
 
-  if (!existsSync(TOOLS_DIR)) return tools;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = join(dir, entry.name);
 
-  const files = readdirSync(TOOLS_DIR, { withFileTypes: true });
-
-  for (const file of files) {
-    if (file.isFile() && file.name.endsWith('.ts')) {
-      const content = readFileSync(join(TOOLS_DIR, file.name), 'utf-8');
-
+    if (entry.isDirectory()) {
+      collectToolNames(fullPath, tools);
+    } else if (entry.isFile() && entry.name.endsWith('.ts')) {
+      const content = readFileSync(fullPath, 'utf-8');
       const nameMatches = content.matchAll(/name:\s*['"`]([^'"`]+)['"`]/g);
       for (const match of nameMatches) {
         tools.add(match[1]);
       }
     }
   }
+}
 
+function getImplementedTools(): Set<string> {
+  const tools = new Set<string>();
+  for (const dir of TOOLS_DIRS) {
+    collectToolNames(dir, tools);
+  }
   return tools;
 }
 

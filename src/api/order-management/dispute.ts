@@ -2,8 +2,6 @@ import type { EbayApiClient } from '@/api/client.js';
 import { withApiError } from '@/api/shared/request.js';
 import type { components } from '@/types/sell-apps/order-management/sellFulfillmentV1Oas3.js';
 
-type AcceptPaymentDisputeRequest = components['schemas']['AcceptPaymentDisputeRequest'];
-type ContestPaymentDisputeRequest = components['schemas']['ContestPaymentDisputeRequest'];
 type DisputeSummaryResponse = components['schemas']['DisputeSummaryResponse'];
 type PaymentDispute = components['schemas']['PaymentDispute'];
 type PaymentDisputeActivityHistory = components['schemas']['PaymentDisputeActivityHistory'];
@@ -84,7 +82,7 @@ export class DisputeApi {
    */
   async contestPaymentDispute(
     paymentDisputeId: string,
-    body?: ContestPaymentDisputeRequest
+    body?: Record<string, unknown>
   ): Promise<void> {
     return await withApiError('Failed to contest payment dispute', () =>
       this.client.post<void>(`${this.basePath}/payment_dispute/${paymentDisputeId}/contest`, body)
@@ -96,7 +94,7 @@ export class DisputeApi {
    */
   async acceptPaymentDispute(
     paymentDisputeId: string,
-    body?: AcceptPaymentDisputeRequest
+    body?: Record<string, unknown>
   ): Promise<void> {
     return await withApiError('Failed to accept payment dispute', () =>
       this.client.post<void>(`${this.basePath}/payment_dispute/${paymentDisputeId}/accept`, body)
@@ -106,7 +104,10 @@ export class DisputeApi {
   /**
    * Upload an evidence file
    */
-  async uploadEvidenceFile(paymentDisputeId: string, body: ArrayBuffer): Promise<FileEvidence> {
+  async uploadEvidenceFile(
+    paymentDisputeId: string,
+    body: ArrayBuffer | Record<string, unknown>
+  ): Promise<FileEvidence> {
     return await withApiError('Failed to upload evidence file', () =>
       this.client.post<FileEvidence>(
         `${this.basePath}/payment_dispute/${paymentDisputeId}/upload_evidence_file`,

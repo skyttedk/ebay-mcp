@@ -10,7 +10,6 @@ import {
 } from '../shared/request.js';
 
 type EbayOfferDetailsWithKeys = components['schemas']['EbayOfferDetailsWithKeys'];
-type InventoryItem = components['schemas']['InventoryItem'];
 type GetInventoryItemResponse = components['schemas']['InventoryItemWithSkuLocaleGroupid'];
 type GetInventoryItemsResponse = components['schemas']['InventoryItems'];
 type CreateOfferResponse = components['schemas']['OfferResponse'];
@@ -58,7 +57,10 @@ export class InventoryApi {
    * Create or replace an inventory item
    * @throws Error if required parameters are missing or invalid
    */
-  async createOrReplaceInventoryItem(sku: string, inventoryItem: InventoryItem): Promise<void> {
+  async createOrReplaceInventoryItem(
+    sku: string,
+    inventoryItem: Record<string, unknown>
+  ): Promise<void> {
     requireString(sku, 'sku');
     requireObject(inventoryItem, 'inventoryItem');
 

@@ -1,9 +1,11 @@
 import { z } from 'zod';
-import type { OutputArgs, ToolDefinition } from './types.js';
+import { defineTool } from '@/tools/define-tool.js';
+import type { OutputArgs } from '@/tools/definitions/types.js';
+import type { ToolEntry } from '@/tools/registry.js';
 
 /** Taxonomy API tools for category trees, category suggestions, and compatibility metadata. */
-export const taxonomyTools: ToolDefinition[] = [
-  {
+export const taxonomyEntries: ToolEntry[] = [
+  defineTool({
     name: 'ebay_get_default_category_tree_id',
     description: 'Get the default category tree ID for a marketplace',
     inputSchema: {
@@ -17,8 +19,9 @@ export const taxonomyTools: ToolDefinition[] = [
       },
       description: 'Default category tree ID response',
     } as OutputArgs,
-  },
-  {
+    handler: (api, args) => api.taxonomy.getDefaultCategoryTreeId(args.marketplaceId),
+  }),
+  defineTool({
     name: 'ebay_get_category_tree',
     description: 'Get category tree by ID',
     inputSchema: {
@@ -33,8 +36,9 @@ export const taxonomyTools: ToolDefinition[] = [
       },
       description: 'Category tree details',
     } as OutputArgs,
-  },
-  {
+    handler: (api, args) => api.taxonomy.getCategoryTree(args.categoryTreeId),
+  }),
+  defineTool({
     name: 'ebay_get_category_suggestions',
     description: 'Get category suggestions based on query',
     inputSchema: {
@@ -48,8 +52,9 @@ export const taxonomyTools: ToolDefinition[] = [
       },
       description: 'Category suggestions response',
     } as OutputArgs,
-  },
-  {
+    handler: (api, args) => api.taxonomy.getCategorySuggestions(args.categoryTreeId, args.query),
+  }),
+  defineTool({
     name: 'ebay_get_item_aspects_for_category',
     description: 'Get item aspects for a specific category',
     inputSchema: {
@@ -63,5 +68,7 @@ export const taxonomyTools: ToolDefinition[] = [
       },
       description: 'Item aspects for category',
     } as OutputArgs,
-  },
+    handler: (api, args) =>
+      api.taxonomy.getItemAspectsForCategory(args.categoryTreeId, args.categoryId),
+  }),
 ];

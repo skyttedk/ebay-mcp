@@ -1,9 +1,12 @@
 import { z } from 'zod';
-import type { OutputArgs, ToolDefinition } from './types.js';
+import { defineTool } from '@/tools/define-tool.js';
+import { getApiStatusFeed } from '@/utils/api-status-feed.js';
+import type { OutputArgs } from '@/tools/definitions/types.js';
+import type { ToolEntry } from '@/tools/registry.js';
 
 /** Developer API tools for eBay application and keyset management. */
-export const developerTools: ToolDefinition[] = [
-  {
+export const developerEntries: ToolEntry[] = [
+  defineTool({
     name: 'ebay_get_api_status',
     description:
       'Get the latest eBay API status and incidents from the official RSS feed. Returns recent issues, fixes, and outages for eBay APIs (e.g. Trading API, Inventory API, Sandbox). Use when the user asks about API status, outages, or fixes.',
@@ -46,8 +49,16 @@ export const developerTools: ToolDefinition[] = [
       },
       description: 'Latest API status items from eBay developer feed',
     } as OutputArgs,
-  },
-  {
+    handler: async (_api, args) => {
+      const feed = await getApiStatusFeed({
+        limit: args.limit,
+        status: args.status,
+        api: args.api,
+      });
+      return { items: feed.items, ...(feed.error && { error: feed.error }) };
+    },
+  }),
+  defineTool({
     name: 'ebay_get_rate_limits',
     description:
       'Get application rate limits for eBay APIs. Returns call quota, remaining calls, and time until reset for each API resource.',
@@ -79,8 +90,9 @@ export const developerTools: ToolDefinition[] = [
       },
       description: 'Rate limit data for application APIs',
     } as OutputArgs,
-  },
-  {
+    handler: (api, args) => api.developer.getRateLimits(args.apiContext, args.apiName),
+  }),
+  defineTool({
     name: 'ebay_get_user_rate_limits',
     description:
       'Get user-specific rate limits for eBay APIs. Returns call quota per user for APIs that limit by user.',
@@ -101,8 +113,9 @@ export const developerTools: ToolDefinition[] = [
       },
       description: 'Rate limit data for user APIs',
     } as OutputArgs,
-  },
-  {
+    handler: (api, args) => api.developer.getUserRateLimits(args.apiContext, args.apiName),
+  }),
+  defineTool({
     name: 'ebay_register_client',
     description:
       'Register a third party financial application with eBay (Open Banking / PSD2). Requires valid eIDAS certificate via MTLS.',
@@ -131,8 +144,9 @@ export const developerTools: ToolDefinition[] = [
       },
       description: 'Registered client details with credentials',
     } as OutputArgs,
-  },
-  {
+    handler: (api, args) => api.developer.registerClient(args.clientSettings),
+  }),
+  defineTool({
     name: 'ebay_get_signing_keys',
     description:
       'Get all signing keys for the application. Returns public keys and metadata (private keys are not stored by eBay).',
@@ -157,8 +171,9 @@ export const developerTools: ToolDefinition[] = [
       },
       description: 'List of signing keys',
     } as OutputArgs,
-  },
-  {
+    handler: (api) => api.developer.getSigningKeys(),
+  }),
+  defineTool({
     name: 'ebay_create_signing_key',
     description:
       'Create a new signing keypair for API digital signatures. Supports ED25519 (recommended) or RSA ciphers. IMPORTANT: Save the private key immediately as eBay does not store it.',
@@ -183,8 +198,12 @@ export const developerTools: ToolDefinition[] = [
       },
       description: 'Created signing key with private key (returned only once)',
     } as OutputArgs,
-  },
-  {
+    handler: (api, args) =>
+      api.developer.createSigningKey(
+        args.signingKeyCipher ? { signingKeyCipher: args.signingKeyCipher } : undefined
+      ),
+  }),
+  defineTool({
     name: 'ebay_get_signing_key',
     description:
       'Get a specific signing key by ID. Returns public key and metadata (private key is not stored by eBay).',
@@ -203,5 +222,6 @@ export const developerTools: ToolDefinition[] = [
       },
       description: 'Signing key details',
     } as OutputArgs,
-  },
+    handler: (api, args) => api.developer.getSigningKey(args.signingKeyId),
+  }),
 ];

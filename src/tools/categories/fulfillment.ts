@@ -1,5 +1,8 @@
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
+import { defineTool } from '@/tools/define-tool.js';
+import type { OutputArgs } from '@/tools/definitions/types.js';
+import type { ToolEntry } from '@/tools/registry.js';
 import { shippingFulfillmentSchema } from '../schemas.js';
 import {
   getOrdersOutputSchema,
@@ -9,11 +12,10 @@ import {
   issueRefundOutputSchema,
   getPaymentDisputesOutputSchema,
 } from '@/schemas/fulfillment/orders.js';
-import type { OutputArgs, ToolDefinition } from './types.js';
 
 /** Fulfillment API tools for orders, shipping fulfillments, refunds, and cancellations. */
-export const fulfillmentTools: ToolDefinition[] = [
-  {
+export const fulfillmentEntries: ToolEntry[] = [
+  defineTool({
     name: 'ebay_get_orders',
     description:
       'Retrieve orders for the seller.\n\nRequired OAuth Scope: sell.fulfillment.readonly or sell.fulfillment\nMinimum Scope: https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly',
@@ -29,8 +31,9 @@ export const fulfillmentTools: ToolDefinition[] = [
       name: 'GetOrdersResponse',
       $refStrategy: 'none',
     }) as OutputArgs,
-  },
-  {
+    handler: (api, args) => api.fulfillment.getOrders(args.filter, args.limit, args.offset),
+  }),
+  defineTool({
     name: 'ebay_get_order',
     description:
       'Get details of a specific order.\n\nRequired OAuth Scope: sell.fulfillment.readonly or sell.fulfillment\nMinimum Scope: https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly',
@@ -41,8 +44,9 @@ export const fulfillmentTools: ToolDefinition[] = [
       name: 'GetOrderResponse',
       $refStrategy: 'none',
     }) as OutputArgs,
-  },
-  {
+    handler: (api, args) => api.fulfillment.getOrder(args.orderId),
+  }),
+  defineTool({
     name: 'ebay_create_shipping_fulfillment',
     description:
       'Create a shipping fulfillment for an order.\n\nRequired OAuth Scope: sell.fulfillment\nMinimum Scope: https://api.ebay.com/oauth/api_scope/sell.fulfillment',
@@ -56,8 +60,10 @@ export const fulfillmentTools: ToolDefinition[] = [
       name: 'CreateShippingFulfillmentResponse',
       $refStrategy: 'none',
     }) as OutputArgs,
-  },
-  {
+    handler: (api, args) =>
+      api.fulfillment.createShippingFulfillment(args.orderId, args.fulfillment),
+  }),
+  defineTool({
     name: 'ebay_get_shipping_fulfillments',
     description:
       'Get all shipping fulfillments for an order.\n\nRequired OAuth Scope: sell.fulfillment.readonly or sell.fulfillment\nMinimum Scope: https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly',
@@ -68,8 +74,9 @@ export const fulfillmentTools: ToolDefinition[] = [
       name: 'GetShippingFulfillmentsResponse',
       $refStrategy: 'none',
     }) as OutputArgs,
-  },
-  {
+    handler: (api, args) => api.fulfillment.getShippingFulfillments(args.orderId),
+  }),
+  defineTool({
     name: 'ebay_get_shipping_fulfillment',
     description:
       'Get a specific shipping fulfillment by ID.\n\nRequired OAuth Scope: sell.fulfillment.readonly or sell.fulfillment\nMinimum Scope: https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly',
@@ -81,8 +88,10 @@ export const fulfillmentTools: ToolDefinition[] = [
       name: 'GetShippingFulfillmentResponse',
       $refStrategy: 'none',
     }) as OutputArgs,
-  },
-  {
+    handler: (api, args) =>
+      api.fulfillment.getShippingFulfillment(args.orderId, args.fulfillmentId),
+  }),
+  defineTool({
     name: 'ebay_issue_refund',
     description:
       'Issue a full or partial refund for an eBay order. Use this to refund buyers for orders, including specifying the refund amount and reason.\n\nRequired OAuth Scope: sell.fulfillment\nMinimum Scope: https://api.ebay.com/oauth/api_scope/sell.fulfillment',
@@ -147,9 +156,10 @@ export const fulfillmentTools: ToolDefinition[] = [
       name: 'IssueRefundResponse',
       $refStrategy: 'none',
     }) as OutputArgs,
-  },
+    handler: (api, args) => api.fulfillment.issueRefund(args.orderId, args.refundData),
+  }),
   // Payment Dispute Tools
-  {
+  defineTool({
     name: 'ebay_get_payment_dispute_summaries',
     description:
       'Get summaries of all payment disputes. Use filters to narrow results by dispute status, buyer username, or order ID.\n\nRequired OAuth Scope: sell.fulfillment\nMinimum Scope: https://api.ebay.com/oauth/api_scope/sell.fulfillment',
@@ -173,8 +183,16 @@ export const fulfillmentTools: ToolDefinition[] = [
       name: 'GetPaymentDisputeSummariesResponse',
       $refStrategy: 'none',
     }) as OutputArgs,
-  },
-  {
+    handler: (api, args) =>
+      api.dispute.getPaymentDisputeSummaries({
+        order_id: args.orderFilter,
+        buyer_username: args.buyerFilter,
+        payment_dispute_status: args.openFilter ? 'OPEN' : undefined,
+        limit: args.limit,
+        offset: args.offset,
+      }),
+  }),
+  defineTool({
     name: 'ebay_get_payment_dispute',
     description:
       'Get detailed information about a specific payment dispute.\n\nRequired OAuth Scope: sell.fulfillment\nMinimum Scope: https://api.ebay.com/oauth/api_scope/sell.fulfillment',
@@ -192,8 +210,9 @@ export const fulfillmentTools: ToolDefinition[] = [
       },
       description: 'Payment dispute details',
     } as OutputArgs,
-  },
-  {
+    handler: (api, args) => api.dispute.getPaymentDispute(args.paymentDisputeId),
+  }),
+  defineTool({
     name: 'ebay_get_payment_dispute_activities',
     description:
       'Get activity history for a payment dispute, including all actions taken by buyer, seller, and eBay.\n\nRequired OAuth Scope: sell.fulfillment\nMinimum Scope: https://api.ebay.com/oauth/api_scope/sell.fulfillment',
@@ -207,8 +226,9 @@ export const fulfillmentTools: ToolDefinition[] = [
       },
       description: 'Payment dispute activity history',
     } as OutputArgs,
-  },
-  {
+    handler: (api, args) => api.dispute.getActivities(args.paymentDisputeId),
+  }),
+  defineTool({
     name: 'ebay_accept_payment_dispute',
     description:
       'Accept a payment dispute and allow eBay to refund the buyer. Use this when you agree with the buyer claim.\n\nRequired OAuth Scope: sell.fulfillment\nMinimum Scope: https://api.ebay.com/oauth/api_scope/sell.fulfillment',
@@ -237,8 +257,10 @@ export const fulfillmentTools: ToolDefinition[] = [
       properties: {},
       description: 'Empty response on successful acceptance (HTTP 204)',
     } as OutputArgs,
-  },
-  {
+    handler: (api, args) =>
+      api.dispute.acceptPaymentDispute(args.paymentDisputeId, args.returnAddress),
+  }),
+  defineTool({
     name: 'ebay_contest_payment_dispute',
     description:
       'Contest a payment dispute by providing evidence. Use this when you disagree with the buyer claim and want to provide proof.\n\nRequired OAuth Scope: sell.fulfillment\nMinimum Scope: https://api.ebay.com/oauth/api_scope/sell.fulfillment',
@@ -262,8 +284,10 @@ export const fulfillmentTools: ToolDefinition[] = [
       properties: {},
       description: 'Empty response on successful contest (HTTP 204)',
     } as OutputArgs,
-  },
-  {
+    handler: (api, args) =>
+      api.dispute.contestPaymentDispute(args.paymentDisputeId, args.returnAddress),
+  }),
+  defineTool({
     name: 'ebay_add_payment_dispute_evidence',
     description:
       'Add evidence to support your case in a payment dispute. Provide evidence files and supporting information.\n\nRequired OAuth Scope: sell.fulfillment\nMinimum Scope: https://api.ebay.com/oauth/api_scope/sell.fulfillment',
@@ -300,8 +324,9 @@ export const fulfillmentTools: ToolDefinition[] = [
       properties: {},
       description: 'Empty response on successful evidence addition (HTTP 204)',
     } as OutputArgs,
-  },
-  {
+    handler: (api, args) => api.dispute.addEvidence(args.paymentDisputeId, args),
+  }),
+  defineTool({
     name: 'ebay_update_payment_dispute_evidence',
     description:
       'Update existing evidence in a payment dispute.\n\nRequired OAuth Scope: sell.fulfillment\nMinimum Scope: https://api.ebay.com/oauth/api_scope/sell.fulfillment',
@@ -332,8 +357,9 @@ export const fulfillmentTools: ToolDefinition[] = [
       properties: {},
       description: 'Empty response on successful evidence update (HTTP 204)',
     } as OutputArgs,
-  },
-  {
+    handler: (api, args) => api.dispute.updateEvidence(args.paymentDisputeId, args),
+  }),
+  defineTool({
     name: 'ebay_upload_payment_dispute_evidence_file',
     description:
       'Upload a file as evidence for a payment dispute (e.g., shipping receipt, photos). Returns a file ID to use with add_evidence.\n\nRequired OAuth Scope: sell.fulfillment\nMinimum Scope: https://api.ebay.com/oauth/api_scope/sell.fulfillment',
@@ -353,8 +379,9 @@ export const fulfillmentTools: ToolDefinition[] = [
       },
       description: 'File upload response with file ID',
     } as OutputArgs,
-  },
-  {
+    handler: (api, args) => api.dispute.uploadEvidenceFile(args.paymentDisputeId, args.file),
+  }),
+  defineTool({
     name: 'ebay_fetch_payment_dispute_evidence_content',
     description:
       'Download evidence file content from a payment dispute.\n\nRequired OAuth Scope: sell.fulfillment\nMinimum Scope: https://api.ebay.com/oauth/api_scope/sell.fulfillment',
@@ -371,5 +398,7 @@ export const fulfillmentTools: ToolDefinition[] = [
       },
       description: 'File content and content type',
     } as OutputArgs,
-  },
+    handler: (api, args) =>
+      api.dispute.fetchEvidenceContent(args.paymentDisputeId, args.evidenceId, args.fileId),
+  }),
 ];
