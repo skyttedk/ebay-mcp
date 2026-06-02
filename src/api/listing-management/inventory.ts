@@ -1,8 +1,8 @@
 import type { components } from '../../types/sell-apps/listing-management/sellInventoryV1Oas3.js';
 import type { EbayApiClient } from '../client.js';
-import { buildValidatedPaginatedParams } from '../shared/query-params.js';
 import {
   buildOptionalStringParams,
+  buildValidatedPaginatedParams,
   optionalStringParam,
   requireObject,
   requireString,

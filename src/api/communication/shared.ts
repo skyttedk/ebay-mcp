@@ -1,6 +1,9 @@
 import type { EbayApiClient } from '../client.js';
-import { buildValidatedPaginatedParams } from '../shared/query-params.js';
-import { getWithApiError, requireString } from '../shared/request.js';
+import {
+  buildValidatedPaginatedParams,
+  getWithApiError,
+  requireString,
+} from '../shared/request.js';
 
 /**
  * Build validated pagination query params.

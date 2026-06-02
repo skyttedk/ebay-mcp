@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { OutputArgs, ToolDefinition } from '../tool-definitions.js';
+import type { OutputArgs, ToolDefinition } from './types.js';
 
 /**
  * Token Management & Authentication Tools

@@ -9,7 +9,7 @@ import {
   issueRefundOutputSchema,
   getPaymentDisputesOutputSchema,
 } from '@/schemas/fulfillment/orders.js';
-import type { OutputArgs, ToolDefinition } from '../tool-definitions.js';
+import type { OutputArgs, ToolDefinition } from './types.js';
 
 /** Fulfillment API tools for orders, shipping fulfillments, refunds, and cancellations. */
 export const fulfillmentTools: ToolDefinition[] = [

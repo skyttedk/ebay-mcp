@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { shippingQuoteRequestSchema, veroReportDataSchema } from '../schemas.js';
-import type { OutputArgs, ToolDefinition } from '../tool-definitions.js';
+import type { OutputArgs, ToolDefinition } from './types.js';
 
 /** Miscellaneous eBay API tools that do not fit the primary seller API categories. */
 export const otherApiTools: ToolDefinition[] = [

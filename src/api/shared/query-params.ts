@@ -1,9 +1,4 @@
-import { buildValidatedPaginatedParams, type QueryParams } from './request.js';
-
-/**
- * Re-export the strict paginated query builder used by newer REST helpers.
- */
-export { buildValidatedPaginatedParams };
+import type { QueryParams } from './request.js';
 
 /**
  * Build legacy paginated query parameters, omitting falsy values.

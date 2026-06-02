@@ -5,7 +5,7 @@ import {
   notificationDestinationSchema,
   offerToBuyersSchema,
 } from '../schemas.js';
-import type { OutputArgs, ToolDefinition } from '../tool-definitions.js';
+import type { OutputArgs, ToolDefinition } from './types.js';
 
 /** Communication API tools for member messages and seller feedback workflows. */
 export const communicationTools: ToolDefinition[] = [

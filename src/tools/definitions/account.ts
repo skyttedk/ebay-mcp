@@ -28,7 +28,7 @@ import {
   privilegesOutputSchema,
   programsOutputSchema,
 } from '@/schemas/account-management/account.js';
-import type { OutputArgs, ToolDefinition } from '../tool-definitions.js';
+import type { OutputArgs, ToolDefinition } from './types.js';
 
 /** Account Management API tools for seller policies, tax, KYC, privileges, and programs. */
 export const accountTools: ToolDefinition[] = [

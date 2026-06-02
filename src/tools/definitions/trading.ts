@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { ToolDefinition } from '../tool-definitions.js';
+import type { ToolDefinition } from './types.js';
 
 /** Trading API tools for legacy listing, order, feedback, and dispute operations. */
 export const tradingTools: ToolDefinition[] = [

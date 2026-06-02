@@ -166,6 +166,11 @@ export class EbayApiClient {
       }
 
       const token = await this.authClient.getAccessToken();
+      if (!token) {
+        throw new Error(
+          'Access token is missing. Provide EBAY_USER_REFRESH_TOKEN or valid app credentials, then retry.'
+        );
+      }
       const headers = {
         ...this.getDefaultHeaders(),
         ...options.headers,

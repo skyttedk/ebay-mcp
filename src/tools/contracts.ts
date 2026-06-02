@@ -1,4 +1,4 @@
-import type { OutputArgs, ToolAnnotations, ToolDefinition } from '@/tools/tool-definitions.js';
+import type { OutputArgs, ToolAnnotations, ToolDefinition } from '@/tools/definitions/types.js';
 import { getToolEntries } from '@/tools/registry.js';
 
 /** Public tool contract shape exposed to consumers after registry normalization. */

@@ -11,6 +11,7 @@
  * - Less context for AI to process per category
  */
 
+import { connectorTools } from './connector.js';
 import { tokenManagementTools } from './token-management.js';
 import { accountTools } from './account.js';
 import { inventoryTools } from './inventory.js';
@@ -26,6 +27,7 @@ import { tradingTools } from './trading.js';
 
 // Export individual categories
 export {
+  connectorTools,
   tokenManagementTools,
   accountTools,
   inventoryTools,
@@ -57,4 +59,4 @@ export const allTools = [
 ];
 
 /** Re-exported tool definition type for category catalog consumers. */
-export type { ToolDefinition } from '../tool-definitions.js';
+export type { ToolDefinition } from './types.js';

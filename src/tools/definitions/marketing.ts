@@ -12,7 +12,7 @@ import {
   adResponseSchema,
   baseResponseSchema,
 } from '@/schemas/marketing/marketing.js';
-import type { OutputArgs, ToolDefinition } from '../tool-definitions.js';
+import type { OutputArgs, ToolDefinition } from './types.js';
 
 // Reusable schemas
 const campaignIdSchema = z.string().describe('Campaign ID');

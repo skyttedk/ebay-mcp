@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { OutputArgs, ToolDefinition } from '../tool-definitions.js';
+import type { OutputArgs, ToolDefinition } from './types.js';
 
 /** Taxonomy API tools for category trees, category suggestions, and compatibility metadata. */
 export const taxonomyTools: ToolDefinition[] = [

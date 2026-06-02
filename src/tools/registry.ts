@@ -1,20 +1,5 @@
-import {
-  accountTools,
-  analyticsTools,
-  communicationTools,
-  developerTools,
-  fulfillmentTools,
-  inventoryTools,
-  marketingTools,
-  metadataTools,
-  otherApiTools,
-  taxonomyTools,
-  tokenManagementTools,
-  tradingTools,
-  type ToolDefinition,
-} from '@/tools/definitions/index.js';
+import { allTools, connectorTools, type ToolDefinition } from '@/tools/definitions/index.js';
 import { toolHandlers, type ToolHandler } from '@/tools/tool-handlers/index.js';
-import { chatGptTools } from '@/tools/tool-definitions.js';
 
 /** Runtime registry entry pairing a public tool definition with its executable handler. */
 export interface ToolEntry {
@@ -29,25 +14,8 @@ export interface ToolRegistryValidation {
   orphanHandlers: string[];
 }
 
-const chatConnectorTools = chatGptTools.filter(
-  (tool) => tool.name === 'search' || tool.name === 'fetch'
-);
-
-const toolDefinitions: ToolDefinition[] = [
-  ...chatConnectorTools,
-  ...tokenManagementTools,
-  ...accountTools,
-  ...inventoryTools,
-  ...fulfillmentTools,
-  ...marketingTools,
-  ...analyticsTools,
-  ...metadataTools,
-  ...taxonomyTools,
-  ...communicationTools,
-  ...otherApiTools,
-  ...developerTools,
-  ...tradingTools,
-];
+// Connector tools (`search`/`fetch`) are registered ahead of the eBay API tools.
+const toolDefinitions: ToolDefinition[] = [...connectorTools, ...allTools];
 
 let cachedEntries: ToolEntry[] | undefined;
 

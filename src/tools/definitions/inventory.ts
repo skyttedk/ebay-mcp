@@ -30,7 +30,7 @@ import {
   bulkOfferResponseSchema,
   bulkPublishResponseSchema,
 } from '@/schemas/inventory-management/inventory.js';
-import type { OutputArgs, ToolDefinition } from '../tool-definitions.js';
+import type { OutputArgs, ToolDefinition } from './types.js';
 
 /** Inventory API tools for seller inventory items, offers, locations, and bulk operations. */
 export const inventoryTools: ToolDefinition[] = [
