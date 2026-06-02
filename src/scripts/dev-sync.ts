@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
-import axios from 'axios';
 import chalk from 'chalk';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 'fs';
 import { join, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
+import { httpRequest } from '../utils/http.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -132,7 +132,11 @@ async function downloadSpecs(): Promise<number> {
     const stopSpinner = showSpinner(`Downloading ${fileName}...`);
     try {
       mkdirSync(folderPath, { recursive: true });
-      const response = await axios.get(url, { responseType: 'arraybuffer', timeout: 20000 });
+      const response = await httpRequest<Buffer>({
+        url,
+        responseType: 'arraybuffer',
+        timeoutMs: 20000,
+      });
       writeFileSync(filePath, response.data);
       console.log(`  ${ui.success('✓')} ${fileName}`);
       downloaded++;

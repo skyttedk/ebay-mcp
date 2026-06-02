@@ -1,6 +1,6 @@
-import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
+import { httpRequest } from '../utils/http.js';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
@@ -97,7 +97,7 @@ const getFolderName = (specUrl: string): string => {
 
 const downloadFile = async (url: string, folderPath: string, fileName: string) => {
   try {
-    const response = await axios.get(url, { responseType: 'arraybuffer' });
+    const response = await httpRequest<Buffer>({ url, responseType: 'arraybuffer' });
     const filePath = path.join(folderPath, fileName);
     fs.mkdirSync(folderPath, { recursive: true });
     fs.writeFileSync(filePath, response.data);

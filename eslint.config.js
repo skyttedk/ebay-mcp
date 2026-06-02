@@ -98,8 +98,11 @@ export default tseslint.config(
       'n/no-unsupported-features/node-builtins': [
         'error',
         {
+          // `fetch` and its `Response` type are stable and fully functional on
+          // Node 18 (the rule's default threshold is conservatively 21). The
+          // project's HTTP layer (src/utils/http.ts) is built on them.
           version: '>=18.0.0',
-          ignores: ['fetch'],
+          ignores: ['fetch', 'Response'],
         },
       ],
       'n/no-process-exit': 'warn',

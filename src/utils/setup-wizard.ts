@@ -78,15 +78,19 @@ function openUrl(url: string): Promise<void> {
     let command = '';
     let args: string[] = [];
 
-    if (currentPlatform === 'darwin') {
-      command = 'open';
-      args = [url];
-    } else if (currentPlatform === 'win32') {
-      command = 'cmd';
-      args = ['/c', 'start', '', url];
-    } else {
-      command = 'xdg-open';
-      args = [url];
+    switch (currentPlatform) {
+      case 'darwin':
+        command = 'open';
+        args = [url];
+        break;
+      case 'win32':
+        command = 'cmd';
+        args = ['/c', 'start', '', url];
+        break;
+      default:
+        command = 'xdg-open';
+        args = [url];
+        break;
     }
 
     const child = spawn(command, args, {
@@ -131,52 +135,56 @@ async function promptStep(
   };
 
   let response: Record<string, unknown>;
-  if (step.type === 'select') {
-    response = await prompts(
-      {
-        type: 'select',
-        name: 'value',
-        message: step.message,
-        initial: getSelectDefaultIndex(promptOptions ?? [], step.default),
-        choices: (promptOptions ?? []).map((option) => ({
-          title: option.label,
-          value: option.value,
-        })),
-        instructions: false,
-      },
-      promptControl
-    );
-  } else if (step.type === 'multiselect') {
-    response = await prompts(
-      {
-        type: 'multiselect',
-        name: 'value',
-        message: step.message,
-        choices: (promptOptions ?? []).map((option) => ({
-          title: option.label,
-          value: option.value,
-        })),
-        instructions: false,
-      },
-      promptControl
-    );
-  } else {
-    response = await prompts(
-      {
-        type: step.type,
-        name: 'value',
-        message: step.message,
-        initial: step.default ?? '',
-        validate: (value: string) => {
-          const requiredRule = step.validate?.some((rule) => rule.rule === 'required');
-          const isRequired = requiredRule || step.required === true;
-          if (!isRequired && value.trim().length === 0) return true;
-          if (isRequired && value.trim().length === 0) return 'This field is required';
-          return true;
+  switch (step.type) {
+    case 'select':
+      response = await prompts(
+        {
+          type: 'select',
+          name: 'value',
+          message: step.message,
+          initial: getSelectDefaultIndex(promptOptions ?? [], step.default),
+          choices: (promptOptions ?? []).map((option) => ({
+            title: option.label,
+            value: option.value,
+          })),
+          instructions: false,
         },
-      },
-      promptControl
-    );
+        promptControl
+      );
+      break;
+    case 'multiselect':
+      response = await prompts(
+        {
+          type: 'multiselect',
+          name: 'value',
+          message: step.message,
+          choices: (promptOptions ?? []).map((option) => ({
+            title: option.label,
+            value: option.value,
+          })),
+          instructions: false,
+        },
+        promptControl
+      );
+      break;
+    default:
+      response = await prompts(
+        {
+          type: step.type,
+          name: 'value',
+          message: step.message,
+          initial: step.default ?? '',
+          validate: (value: string) => {
+            const requiredRule = step.validate?.some((rule) => rule.rule === 'required');
+            const isRequired = requiredRule || step.required === true;
+            if (!isRequired && value.trim().length === 0) return true;
+            if (isRequired && value.trim().length === 0) return 'This field is required';
+            return true;
+          },
+        },
+        promptControl
+      );
+      break;
   }
 
   if (cancelled) {

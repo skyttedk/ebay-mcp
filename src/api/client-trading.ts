@@ -1,6 +1,6 @@
-import axios from 'axios';
 import { XMLBuilder, XMLParser } from 'fast-xml-parser';
 import type { EbayApiClient } from '@/api/client.js';
+import { httpRequest } from '@/utils/http.js';
 import { apiLogger } from '@/utils/logger.js';
 import { isRecord } from '@/utils/type-guards.js';
 
@@ -79,9 +79,11 @@ export class TradingApiClient {
 
     apiLogger.debug(`Trading API ${callName}`, { xmlBody });
 
-    let response;
+    let responseXml: string;
     try {
-      response = await axios.post(`${this.baseUrl}/ws/api.dll`, xmlBody, {
+      const response = await httpRequest<string>({
+        method: 'POST',
+        url: `${this.baseUrl}/ws/api.dll`,
         headers: {
           'X-EBAY-API-SITEID': SITE_ID,
           'X-EBAY-API-COMPATIBILITY-LEVEL': COMPAT_LEVEL,
@@ -89,8 +91,11 @@ export class TradingApiClient {
           'X-EBAY-API-IAF-TOKEN': token,
           'Content-Type': 'text/xml',
         },
-        timeout: 30000,
+        body: xmlBody,
+        timeoutMs: 30000,
+        responseType: 'text',
       });
+      responseXml = response.data;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown HTTP error';
       throw new Error(`Trading API ${callName} request failed: ${message}`);
@@ -98,7 +103,7 @@ export class TradingApiClient {
 
     let parsed: Record<string, unknown>;
     try {
-      const parsedValue = this.parser.parse(response.data);
+      const parsedValue = this.parser.parse(responseXml);
       if (!isRecord(parsedValue)) {
         throw new Error('Trading API response must be an object');
       }
