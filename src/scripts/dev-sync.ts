@@ -119,23 +119,37 @@ async function downloadSpecs(): Promise<number> {
   console.log(ui.dim(`  Found ${urls.length} spec URLs\n`));
 
   let downloaded = 0;
+  let failed = 0;
   for (const url of urls) {
     const fileName = basename(url);
     const folderName = SPEC_FOLDER_MAP[fileName] || 'other-apis';
     const folderPath = join(DOCS_DIR, folderName);
     const filePath = join(folderPath, fileName);
 
+    // Spinner is started outside the try so the `finally` always clears its
+    // interval — otherwise a failed download leaks a timer that keeps the Node
+    // event loop alive and the process never exits.
+    const stopSpinner = showSpinner(`Downloading ${fileName}...`);
     try {
       mkdirSync(folderPath, { recursive: true });
-      const stopSpinner = showSpinner(`Downloading ${fileName}...`);
-      const response = await axios.get(url, { responseType: 'arraybuffer' });
-      stopSpinner();
+      const response = await axios.get(url, { responseType: 'arraybuffer', timeout: 20000 });
       writeFileSync(filePath, response.data);
       console.log(`  ${ui.success('✓')} ${fileName}`);
       downloaded++;
     } catch (error) {
       console.log(`  ${ui.error('✗')} ${fileName}: ${(error as Error).message}`);
+      failed++;
+    } finally {
+      stopSpinner();
     }
+  }
+
+  if (failed > 0 && downloaded === 0) {
+    console.log(
+      ui.error(
+        `\n  ✗ All ${failed} spec downloads failed — eBay is likely blocking automated requests (HTTP 403).`
+      )
+    );
   }
 
   return downloaded;
@@ -600,7 +614,17 @@ ${ui.bold('What this does:')}
     report.specsDownloaded = await downloadSpecs();
   }
 
-  if (!reportOnly && !skipTypes) {
+  // If the download step ran but fetched nothing (missing manifest or blocked
+  // requests), the coverage numbers below describe the cached specs on disk —
+  // not eBay's current API. Flag it loudly so a stale run is never mistaken for
+  // a clean "100% coverage, 0 missing" result.
+  const usingStaleSpecs = !reportOnly && !skipDownload && report.specsDownloaded === 0;
+
+  // Don't regenerate types when nothing was downloaded: the inputs on disk are
+  // unchanged, so a regen only risks churn (and can break the build if the
+  // generator's interface naming drifts from what the code imports). Use
+  // --skip-download to deliberately regenerate from on-disk specs.
+  if (!reportOnly && !skipTypes && !usingStaleSpecs) {
     report.typesGenerated = generateTypes();
   }
 
@@ -612,7 +636,20 @@ ${ui.bold('What this does:')}
   showMissingEndpoints(analysis.missing);
   generateReport(report);
 
-  console.log(ui.bold.green('✓ Sync complete!\n'));
+  if (usingStaleSpecs) {
+    console.log(
+      ui.warning(
+        '\n  ⚠ No specs were downloaded — coverage above reflects the cached specs on disk, not eBay live.'
+      )
+    );
+    console.log(
+      ui.dim(
+        '    Refresh the specs (the eBay docs URLs return 403 to scripts) before trusting these numbers.'
+      )
+    );
+  }
+
+  console.log(ui.bold.green('\n✓ Sync complete!\n'));
 }
 
 main().catch((error) => {
