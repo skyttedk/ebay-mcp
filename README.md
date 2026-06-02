@@ -4,7 +4,7 @@
 
 [![npm version](https://img.shields.io/npm/v/ebay-mcp)](https://www.npmjs.com/package/ebay-mcp)
 [![npm downloads](https://img.shields.io/npm/dm/ebay-mcp)](https://www.npmjs.com/package/ebay-mcp)
-[![Tests](https://img.shields.io/badge/tests-958%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-1005%20passing-brightgreen)](tests/)
 [![API Coverage](https://img.shields.io/badge/API%20coverage-100%25-success)](src/tools/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Contributors Welcome](https://img.shields.io/badge/contributors-welcome-brightgreen.svg)](CONTRIBUTING.md)
@@ -12,7 +12,7 @@
 [![MseeP.ai Security Assessment Badge](https://mseep.net/pr/yosefhayim-ebay-api-mcp-server-badge.png)](https://mseep.ai/app/yosefhayim-ebay-api-mcp-server)
 <a href="https://www.buymeacoffee.com/yosefhayim" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 
-A [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that gives AI assistants comprehensive access to eBay's Sell APIs — **325 tools** for inventory, order fulfillment, marketing, analytics, developer tools, and more.
+A [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that gives AI assistants comprehensive access to eBay's Sell APIs — **332 tools** for inventory, order fulfillment, marketing, analytics, developer tools, and more.
 
 **API Coverage:** 100% (270 unique eBay API endpoints) · **Runs locally** — no cloud relay.
 
@@ -58,12 +58,12 @@ If I don't have eBay credentials yet, guide me through creating a developer acco
 
 ## Features
 
-- **325 eBay API Tools** — 100% coverage of eBay Sell APIs across inventory, orders, marketing, analytics, developer tools, and more
+- **332 eBay API Tools** — 100% coverage of eBay Sell APIs across inventory, orders, marketing, analytics, developer tools, and more
 - **9 AI Clients Supported** — auto-configuration for Claude Desktop, Cursor, Zed, Cline, Continue.dev, Windsurf, Roo Code, Claude Code CLI, and Amazon Q
 - **OAuth 2.0** — full user-token management with automatic refresh
 - **Type Safety** — TypeScript, Zod validation, and OpenAPI-generated types
 - **Smart Authentication** — automatic fallback from user tokens (10k–50k req/day) to client credentials (1k req/day)
-- **Well Tested** — 958+ tests
+- **Well Tested** — 1005+ tests
 - **Interactive Setup Wizard** — `npm run setup` for guided config with auto browser-open for OAuth
 
 ## Quick Start
@@ -174,7 +174,7 @@ Auto-configured by `npm run setup`. Requires Node.js ≥ 18 and MCP protocol 1.0
 
 ## Available Tools
 
-**325 tools**, 100% API coverage, organized by category:
+**332 tools**, 100% API coverage, organized by category:
 
 - **Account** — policies, programs, subscriptions, sales tax
 - **Inventory** — items, offers, locations, bulk operations, SKU location mapping
