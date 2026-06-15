@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { defineTool } from '@/tools/define-tool.js';
-import type { OutputArgs } from '@/tools/definitions/types.js';
 import type { ToolEntry } from '@/tools/registry.js';
 
 /** Taxonomy API tools for category trees, category suggestions, and compatibility metadata. */
@@ -18,7 +17,7 @@ export const taxonomyEntries: ToolEntry[] = [
         categoryTreeVersion: { type: 'string' },
       },
       description: 'Default category tree ID response',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.taxonomy.getDefaultCategoryTreeId(args.marketplaceId),
   }),
   defineTool({
@@ -35,7 +34,7 @@ export const taxonomyEntries: ToolEntry[] = [
         rootCategoryNode: { type: 'object' },
       },
       description: 'Category tree details',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.taxonomy.getCategoryTree(args.categoryTreeId),
   }),
   defineTool({
@@ -51,7 +50,7 @@ export const taxonomyEntries: ToolEntry[] = [
         categorySuggestions: { type: 'array' },
       },
       description: 'Category suggestions response',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.taxonomy.getCategorySuggestions(args.categoryTreeId, args.query),
   }),
   defineTool({
@@ -67,7 +66,7 @@ export const taxonomyEntries: ToolEntry[] = [
         aspects: { type: 'array' },
       },
       description: 'Item aspects for category',
-    } as OutputArgs,
+    },
     handler: (api, args) =>
       api.taxonomy.getItemAspectsForCategory(args.categoryTreeId, args.categoryId),
   }),

@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { rawTool } from '@/tools/define-tool.js';
-import type { OutputArgs } from '@/tools/definitions/types.js';
 import type { ToolEntry } from '@/tools/registry.js';
 import {
   getAwaitingFeedbackSchema,
@@ -487,7 +486,7 @@ export const communicationEntries: ToolEntry[] = [
       type: 'object',
       properties: {},
       description: 'Success response',
-    } as OutputArgs,
+    },
     handler: (api) => api.feedback.getFeedbackSummary(),
   }),
   rawTool({

@@ -2,7 +2,6 @@ import { z } from 'zod';
 import { buildCredentialDisplay, maskToken } from '@/auth/credential-session.js';
 import { getOAuthAuthorizationUrl, validateScopes } from '@/config/environment.js';
 import { defineTool } from '@/tools/define-tool.js';
-import type { OutputArgs } from '@/tools/definitions/types.js';
 import type { ToolEntry } from '@/tools/registry.js';
 import { convertToTimestamp, validateTokenExpiry } from '@/utils/date-converter.js';
 import { getErrorMessage } from '@/utils/errors.js';
@@ -349,7 +348,7 @@ export const tokenManagementEntries: ToolEntry[] = [
       type: 'object',
       properties: {},
       description: 'Success response',
-    } as OutputArgs,
+    },
     handler: async (api) => {
       const authClient = api.getAuthClient().getOAuthClient();
 
@@ -413,7 +412,7 @@ export const tokenManagementEntries: ToolEntry[] = [
       properties: {},
       description:
         'Token exchange response including access token, refresh token, and expiry times',
-    } as OutputArgs,
+    },
     handler: async (api, args) => {
       const { code } = args;
 

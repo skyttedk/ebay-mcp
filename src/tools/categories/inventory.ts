@@ -89,7 +89,7 @@ export const inventoryEntries: ToolEntry[] = [
       type: 'object',
       properties: {},
       description: 'Empty response on successful deletion (HTTP 204)',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.inventory.deleteInventoryItem(args.sku),
   }),
   defineTool({
@@ -217,7 +217,7 @@ export const inventoryEntries: ToolEntry[] = [
       type: 'object',
       properties: {},
       description: 'Empty response on successful deletion (HTTP 204)',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.inventory.deleteProductCompatibility(args.sku),
   }),
   // Inventory Item Groups
@@ -260,7 +260,7 @@ export const inventoryEntries: ToolEntry[] = [
       type: 'object',
       properties: {},
       description: 'Empty response on successful deletion (HTTP 204)',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.inventory.deleteInventoryItemGroup(args.inventoryItemGroupKey),
   }),
   // Location Management
@@ -313,7 +313,7 @@ export const inventoryEntries: ToolEntry[] = [
       type: 'object',
       properties: {},
       description: 'Empty response on successful deletion (HTTP 204)',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.inventory.deleteInventoryLocation(args.merchantLocationKey),
   }),
   defineTool({
@@ -326,7 +326,7 @@ export const inventoryEntries: ToolEntry[] = [
       type: 'object',
       properties: {},
       description: 'Empty response on successful operation (HTTP 204)',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.inventory.disableInventoryLocation(args.merchantLocationKey),
   }),
   defineTool({
@@ -339,7 +339,7 @@ export const inventoryEntries: ToolEntry[] = [
       type: 'object',
       properties: {},
       description: 'Empty response on successful operation (HTTP 204)',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.inventory.enableInventoryLocation(args.merchantLocationKey),
   }),
   defineTool({
@@ -392,7 +392,7 @@ export const inventoryEntries: ToolEntry[] = [
       type: 'object',
       properties: {},
       description: 'Empty response on successful deletion (HTTP 204)',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.inventory.deleteOffer(args.offerId),
   }),
   defineTool({
@@ -495,7 +495,7 @@ export const inventoryEntries: ToolEntry[] = [
       type: 'object',
       properties: {},
       description: 'Empty response on success (HTTP 204)',
-    } as OutputArgs,
+    },
     handler: (api, args) =>
       api.inventory.createOrReplaceSkuLocationMapping(
         args.listingId,
@@ -515,7 +515,7 @@ export const inventoryEntries: ToolEntry[] = [
       type: 'object',
       properties: {},
       description: 'Empty response on success (HTTP 204)',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.inventory.deleteSkuLocationMapping(args.listingId, args.sku),
   }),
   defineTool({
@@ -554,7 +554,7 @@ export const inventoryEntries: ToolEntry[] = [
       type: 'object',
       properties: {},
       description: 'Empty response on successful withdrawal (HTTP 204)',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.inventory.withdrawOfferByInventoryItemGroup(args.request),
   }),
 ];

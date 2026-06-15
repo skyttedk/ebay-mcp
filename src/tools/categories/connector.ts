@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { defineTool } from '@/tools/define-tool.js';
-import type { OutputArgs } from '@/tools/definitions/types.js';
 import type { ToolEntry } from '@/tools/registry.js';
 
 /**
@@ -25,7 +24,7 @@ export const connectorEntries: ToolEntry[] = [
         success: { type: 'boolean' },
         data: { type: 'object' },
       },
-    } as OutputArgs,
+    },
     annotations: {
       title: 'Search',
       readOnlyHint: true,
@@ -108,7 +107,7 @@ export const connectorEntries: ToolEntry[] = [
         success: { type: 'boolean' },
         data: { type: 'object' },
       },
-    } as OutputArgs,
+    },
     annotations: {
       title: 'Fetch',
       readOnlyHint: true,

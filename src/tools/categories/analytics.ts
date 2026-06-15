@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { defineTool } from '@/tools/define-tool.js';
-import type { OutputArgs } from '@/tools/definitions/types.js';
 import type { ToolEntry } from '@/tools/registry.js';
 
 /** Analytics API tools for seller traffic and performance reporting. */
@@ -21,7 +20,7 @@ export const analyticsEntries: ToolEntry[] = [
         warnings: { type: 'array' },
       },
       description: 'Traffic report data',
-    } as OutputArgs,
+    },
     handler: (api, args) =>
       api.analytics.getTrafficReport(args.dimension, args.filter, args.metric, args.sort),
   }),
@@ -35,7 +34,7 @@ export const analyticsEntries: ToolEntry[] = [
         standards: { type: 'array' },
       },
       description: 'Seller standards profiles',
-    } as OutputArgs,
+    },
     handler: (api) => api.analytics.findSellerStandardsProfiles(),
   }),
   defineTool({
@@ -53,7 +52,7 @@ export const analyticsEntries: ToolEntry[] = [
         metrics: { type: 'array' },
       },
       description: 'Seller standards profile data',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.analytics.getSellerStandardsProfile(args.program, args.cycle),
   }),
   defineTool({
@@ -70,7 +69,7 @@ export const analyticsEntries: ToolEntry[] = [
         metrics: { type: 'array' },
       },
       description: 'Customer service metric data',
-    } as OutputArgs,
+    },
     handler: (api, args) =>
       api.analytics.getCustomerServiceMetric(
         args.customerServiceMetricType,

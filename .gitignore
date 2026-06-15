@@ -199,7 +199,7 @@ GEMINI.md
 # Generated reports
 dev-sync-report.json
 
-# Bun lock file (project uses npm)
+# Bun lock file (project uses pnpm)
 bun.lock
 
 # External tool configs

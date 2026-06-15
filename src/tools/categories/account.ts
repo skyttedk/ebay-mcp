@@ -149,7 +149,7 @@ export const accountEntries: ToolEntry[] = [
       type: 'object',
       properties: {},
       description: 'Empty response on successful deletion (HTTP 204)',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.account.deleteFulfillmentPolicy(args.fulfillmentPolicyId),
   }),
   // Payment Policy CRUD
@@ -213,7 +213,7 @@ export const accountEntries: ToolEntry[] = [
       type: 'object',
       properties: {},
       description: 'Empty response on successful deletion (HTTP 204)',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.account.deletePaymentPolicy(args.paymentPolicyId),
   }),
   // Return Policy CRUD
@@ -277,7 +277,7 @@ export const accountEntries: ToolEntry[] = [
       type: 'object',
       properties: {},
       description: 'Empty response on successful deletion (HTTP 204)',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.account.deleteReturnPolicy(args.returnPolicyId),
   }),
   // Custom Policy CRUD
@@ -328,7 +328,7 @@ export const accountEntries: ToolEntry[] = [
       type: 'object',
       properties: {},
       description: 'Empty response on successful deletion (HTTP 204)',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.account.deleteCustomPolicy(args.customPolicyId),
   }),
   // KYC, Payments, Programs, Sales Tax, Subscription

@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { defineTool } from '@/tools/define-tool.js';
-import type { OutputArgs } from '@/tools/definitions/types.js';
 import type { ToolEntry } from '@/tools/registry.js';
 import { shippingQuoteRequestSchema, veroReportDataSchema } from '../schemas.js';
 
@@ -341,7 +340,7 @@ export const otherEntries: ToolEntry[] = [
       type: 'object',
       properties: {},
       description: 'Success response',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.edelivery.createComplaint(args.complaintRequest),
   }),
 ];
@@ -366,7 +365,7 @@ export const claudeEntries: ToolEntry[] = [
       type: 'object',
       properties: {},
       description: 'Success response',
-    } as OutputArgs,
+    },
     handler: (_api, args) => ({
       content: [
         {

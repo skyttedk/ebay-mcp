@@ -209,7 +209,7 @@ export const fulfillmentEntries: ToolEntry[] = [
         amount: { type: 'object' },
       },
       description: 'Payment dispute details',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.dispute.getPaymentDispute(args.paymentDisputeId),
   }),
   defineTool({
@@ -225,7 +225,7 @@ export const fulfillmentEntries: ToolEntry[] = [
         activity: { type: 'array' },
       },
       description: 'Payment dispute activity history',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.dispute.getActivities(args.paymentDisputeId),
   }),
   defineTool({
@@ -256,7 +256,7 @@ export const fulfillmentEntries: ToolEntry[] = [
       type: 'object',
       properties: {},
       description: 'Empty response on successful acceptance (HTTP 204)',
-    } as OutputArgs,
+    },
     handler: (api, args) =>
       api.dispute.acceptPaymentDispute(args.paymentDisputeId, {
         returnAddress: args.returnAddress,
@@ -286,7 +286,7 @@ export const fulfillmentEntries: ToolEntry[] = [
       type: 'object',
       properties: {},
       description: 'Empty response on successful contest (HTTP 204)',
-    } as OutputArgs,
+    },
     handler: (api, args) =>
       api.dispute.contestPaymentDispute(args.paymentDisputeId, {
         returnAddress: args.returnAddress,
@@ -329,7 +329,7 @@ export const fulfillmentEntries: ToolEntry[] = [
       type: 'object',
       properties: {},
       description: 'Empty response on successful evidence addition (HTTP 204)',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.dispute.addEvidence(args.paymentDisputeId, args),
   }),
   defineTool({
@@ -362,7 +362,7 @@ export const fulfillmentEntries: ToolEntry[] = [
       type: 'object',
       properties: {},
       description: 'Empty response on successful evidence update (HTTP 204)',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.dispute.updateEvidence(args.paymentDisputeId, args),
   }),
   defineTool({
@@ -384,7 +384,7 @@ export const fulfillmentEntries: ToolEntry[] = [
         fileId: { type: 'string' },
       },
       description: 'File upload response with file ID',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.dispute.uploadEvidenceFile(args.paymentDisputeId, args.file),
   }),
   defineTool({
@@ -403,7 +403,7 @@ export const fulfillmentEntries: ToolEntry[] = [
         contentType: { type: 'string' },
       },
       description: 'File content and content type',
-    } as OutputArgs,
+    },
     handler: (api, args) =>
       api.dispute.fetchEvidenceContent(args.paymentDisputeId, args.evidenceId, args.fileId),
   }),

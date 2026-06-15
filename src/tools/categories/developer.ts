@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { defineTool } from '@/tools/define-tool.js';
 import { getApiStatusFeed } from '@/utils/api-status-feed.js';
-import type { OutputArgs } from '@/tools/definitions/types.js';
 import type { ToolEntry } from '@/tools/registry.js';
 
 /** Developer API tools for eBay application and keyset management. */
@@ -48,7 +47,7 @@ export const developerEntries: ToolEntry[] = [
         error: { type: 'string' },
       },
       description: 'Latest API status items from eBay developer feed',
-    } as OutputArgs,
+    },
     handler: async (_api, args) => {
       const feed = await getApiStatusFeed({
         limit: args.limit,
@@ -89,7 +88,7 @@ export const developerEntries: ToolEntry[] = [
         },
       },
       description: 'Rate limit data for application APIs',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.developer.getRateLimits(args.apiContext, args.apiName),
   }),
   defineTool({
@@ -112,7 +111,7 @@ export const developerEntries: ToolEntry[] = [
         rateLimits: { type: 'array' },
       },
       description: 'Rate limit data for user APIs',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.developer.getUserRateLimits(args.apiContext, args.apiName),
   }),
   defineTool({
@@ -143,7 +142,7 @@ export const developerEntries: ToolEntry[] = [
         client_secret_expires_at: { type: 'number' },
       },
       description: 'Registered client details with credentials',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.developer.registerClient(args.clientSettings),
   }),
   defineTool({
@@ -170,7 +169,7 @@ export const developerEntries: ToolEntry[] = [
         },
       },
       description: 'List of signing keys',
-    } as OutputArgs,
+    },
     handler: (api) => api.developer.getSigningKeys(),
   }),
   defineTool({
@@ -197,7 +196,7 @@ export const developerEntries: ToolEntry[] = [
         expirationTime: { type: 'number' },
       },
       description: 'Created signing key with private key (returned only once)',
-    } as OutputArgs,
+    },
     handler: (api, args) =>
       api.developer.createSigningKey(
         args.signingKeyCipher ? { signingKeyCipher: args.signingKeyCipher } : undefined
@@ -221,7 +220,7 @@ export const developerEntries: ToolEntry[] = [
         expirationTime: { type: 'number' },
       },
       description: 'Signing key details',
-    } as OutputArgs,
+    },
     handler: (api, args) => api.developer.getSigningKey(args.signingKeyId),
   }),
 ];
