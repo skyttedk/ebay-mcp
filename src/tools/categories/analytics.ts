@@ -1,9 +1,10 @@
 import { z } from 'zod';
-import type { OutputArgs, ToolDefinition } from '../tool-definitions.js';
+import { defineTool } from '@/tools/define-tool.js';
+import type { ToolEntry } from '@/tools/registry.js';
 
 /** Analytics API tools for seller traffic and performance reporting. */
-export const analyticsTools: ToolDefinition[] = [
-  {
+export const analyticsEntries: ToolEntry[] = [
+  defineTool({
     name: 'ebay_get_traffic_report',
     description: 'Get traffic report for listings',
     inputSchema: {
@@ -19,9 +20,11 @@ export const analyticsTools: ToolDefinition[] = [
         warnings: { type: 'array' },
       },
       description: 'Traffic report data',
-    } as OutputArgs,
-  },
-  {
+    },
+    handler: (api, args) =>
+      api.analytics.getTrafficReport(args.dimension, args.filter, args.metric, args.sort),
+  }),
+  defineTool({
     name: 'ebay_find_seller_standards_profiles',
     description: 'Find all seller standards profiles',
     inputSchema: {},
@@ -31,9 +34,10 @@ export const analyticsTools: ToolDefinition[] = [
         standards: { type: 'array' },
       },
       description: 'Seller standards profiles',
-    } as OutputArgs,
-  },
-  {
+    },
+    handler: (api) => api.analytics.findSellerStandardsProfiles(),
+  }),
+  defineTool({
     name: 'ebay_get_seller_standards_profile',
     description: 'Get a specific seller standards profile',
     inputSchema: {
@@ -48,9 +52,10 @@ export const analyticsTools: ToolDefinition[] = [
         metrics: { type: 'array' },
       },
       description: 'Seller standards profile data',
-    } as OutputArgs,
-  },
-  {
+    },
+    handler: (api, args) => api.analytics.getSellerStandardsProfile(args.program, args.cycle),
+  }),
+  defineTool({
     name: 'ebay_get_customer_service_metric',
     description: 'Get customer service metrics',
     inputSchema: {
@@ -64,6 +69,12 @@ export const analyticsTools: ToolDefinition[] = [
         metrics: { type: 'array' },
       },
       description: 'Customer service metric data',
-    } as OutputArgs,
-  },
+    },
+    handler: (api, args) =>
+      api.analytics.getCustomerServiceMetric(
+        args.customerServiceMetricType,
+        args.evaluationType,
+        args.evaluationMarketplaceId
+      ),
+  }),
 ];

@@ -446,7 +446,9 @@ describe('Comprehensive Tools Coverage', () => {
 
     it('ebay_bulk_create_or_replace_sales_tax', async () => {
       const mockResponse = { responses: [] };
-      const requests = { requests: [] };
+      const requests = [
+        { countryCode: 'US', jurisdictionId: 'CA', salesTaxBase: { salesTaxPercentage: '8.25' } },
+      ];
       vi.mocked(mockApi.account.bulkCreateOrReplaceSalesTax).mockResolvedValue(mockResponse);
       await executeTool(mockApi, 'ebay_bulk_create_or_replace_sales_tax', { requests });
       expect(mockApi.account.bulkCreateOrReplaceSalesTax).toHaveBeenCalledWith(requests);
@@ -600,7 +602,11 @@ describe('Comprehensive Tools Coverage', () => {
 
     it('ebay_create_or_replace_inventory_item_group', async () => {
       vi.mocked(mockApi.inventory.createOrReplaceInventoryItemGroup).mockResolvedValue(undefined);
-      const inventoryItemGroup = { inventoryItemGroupKey: 'GROUP123' };
+      const inventoryItemGroup = {
+        inventoryItemGroupKey: 'GROUP123',
+        title: 'Test Group',
+        aspects: {},
+      };
       await executeTool(mockApi, 'ebay_create_or_replace_inventory_item_group', {
         inventoryItemGroupKey: 'GROUP123',
         inventoryItemGroup,
@@ -876,8 +882,20 @@ describe('Comprehensive Tools Coverage', () => {
     it('ebay_get_promotions', async () => {
       const mockResponse = { promotions: [] };
       vi.mocked(mockApi.marketing.getPromotions).mockResolvedValue(mockResponse);
-      await executeTool(mockApi, 'ebay_get_promotions', { marketplaceId: 'EBAY_US' });
-      expect(mockApi.marketing.getPromotions).toHaveBeenCalledWith('EBAY_US', undefined);
+      await executeTool(mockApi, 'ebay_get_promotions', {
+        marketplaceId: 'EBAY_US',
+        limit: 10,
+        offset: 5,
+        promotionStatus: 'RUNNING',
+        promotionType: 'ORDER_DISCOUNT',
+      });
+      expect(mockApi.marketing.getPromotions).toHaveBeenCalledWith(
+        'EBAY_US',
+        10,
+        5,
+        'RUNNING',
+        'ORDER_DISCOUNT'
+      );
     });
   });
 
@@ -1362,7 +1380,11 @@ describe('Comprehensive Tools Coverage', () => {
 
     it('ebay_create_shipping_quote', async () => {
       const mockResponse = { quoteId: 'QUOTE123' };
-      const shippingQuoteRequest = { packageDetails: {} };
+      const shippingQuoteRequest = {
+        packageDetails: { weight: { value: 1, unit: 'POUND' } },
+        shipFrom: { country: 'US' },
+        shipTo: { country: 'US' },
+      };
       vi.mocked(mockApi.edelivery.createShippingQuote).mockResolvedValue(mockResponse);
       await executeTool(mockApi, 'ebay_create_shipping_quote', { shippingQuoteRequest });
       expect(mockApi.edelivery.createShippingQuote).toHaveBeenCalledWith(shippingQuoteRequest);

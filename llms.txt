@@ -1,6 +1,6 @@
 # ebay-mcp
 
-> Local MCP server that exposes 325 tools covering 100% of the eBay Sell APIs to AI coding assistants (Claude, Cursor, Windsurf, and any MCP-compatible client). Runs entirely on your machine — no cloud relay.
+> Local MCP server that exposes 322 tools covering 100% of the eBay Sell APIs to AI coding assistants (Claude, Cursor, Windsurf, and any MCP-compatible client). Runs entirely on your machine — no cloud relay.
 
 Built with TypeScript/Node.js. Supports OAuth 2.0 and eBay Trading API (legacy XML). Configurable via `.env` or an interactive setup wizard.
 

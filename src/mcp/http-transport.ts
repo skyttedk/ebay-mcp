@@ -13,6 +13,7 @@ import { TokenVerifier } from '@/auth/token-verifier.js';
 import { getDefaultScopes, getEbayConfig } from '@/config/environment.js';
 import { createEbayMcpRuntime } from '@/mcp/runtime.js';
 import type { EbayConfig } from '@/types/ebay.js';
+import { getErrorMessage } from '@/utils/errors.js';
 import { getVersion } from '@/utils/version.js';
 
 /**
@@ -112,7 +113,7 @@ async function createMcpServer(serverUrl: string): Promise<McpServer> {
   try {
     await runtime.initializeApi();
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = getErrorMessage(error, String(error));
     console.error(`Failed to initialize eBay API client: ${message}`);
     throw error;
   }

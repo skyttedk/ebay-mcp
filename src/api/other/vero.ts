@@ -1,5 +1,6 @@
 import type { EbayApiClient } from '../client.js';
 import { buildTruthyPaginatedParams } from '../shared/query-params.js';
+import { withApiError } from '@/api/shared/request.js';
 
 /**
  * VERO API - Verified Rights Owner program
@@ -14,14 +15,18 @@ export class VeroApi {
    * Create a VERO report to report intellectual property infringement
    */
   async createVeroReport(reportData: Record<string, unknown>) {
-    return await this.client.post(`${this.basePath}/vero_report`, reportData);
+    return await withApiError('Failed to create vero report', () =>
+      this.client.post(`${this.basePath}/vero_report`, reportData)
+    );
   }
 
   /**
    * Get a specific VERO report by ID
    */
   async getVeroReport(veroReportId: string) {
-    return await this.client.get(`${this.basePath}/vero_report/${veroReportId}`);
+    return await withApiError('Failed to get vero report', () =>
+      this.client.get(`${this.basePath}/vero_report/${veroReportId}`)
+    );
   }
 
   /**
@@ -29,20 +34,26 @@ export class VeroApi {
    */
   async getVeroReportItems(filter?: string, limit?: number, offset?: number) {
     const params = buildTruthyPaginatedParams(filter, limit, offset);
-    return await this.client.get(`${this.basePath}/vero_report_items`, params);
+    return await withApiError('Failed to get vero report items', () =>
+      this.client.get(`${this.basePath}/vero_report_items`, params)
+    );
   }
 
   /**
    * Get a specific VERO reason code by ID
    */
   async getVeroReasonCode(veroReasonCodeId: string) {
-    return await this.client.get(`${this.basePath}/vero_reason_code/${veroReasonCodeId}`);
+    return await withApiError('Failed to get vero reason code', () =>
+      this.client.get(`${this.basePath}/vero_reason_code/${veroReasonCodeId}`)
+    );
   }
 
   /**
    * Get all available VERO reason codes
    */
   async getVeroReasonCodes() {
-    return await this.client.get(`${this.basePath}/vero_reason_code`);
+    return await withApiError('Failed to get vero reason codes', () =>
+      this.client.get(`${this.basePath}/vero_reason_code`)
+    );
   }
 }

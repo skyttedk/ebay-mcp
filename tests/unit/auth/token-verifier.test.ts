@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import axios from 'axios';
+import nock from 'nock';
 import * as jose from 'jose';
 import { TokenVerifier } from '@/auth/token-verifier.js';
 import type { OAuthServerMetadata } from '@/auth/oauth-types.js';
 
-vi.mock('axios');
 vi.mock('jose');
+
+// All test endpoints live on this origin; nock intercepts native fetch.
+const ORIGIN = 'http://localhost:8080';
+const METADATA_PATH = '/realms/master/.well-known/openid-configuration';
+const INTROSPECT_PATH = '/realms/master/protocol/openid-connect/token/introspect';
 
 describe('TokenVerifier', () => {
   const mockMetadata: OAuthServerMetadata = {
@@ -13,32 +17,32 @@ describe('TokenVerifier', () => {
     authorization_endpoint: 'http://localhost:8080/realms/master/protocol/openid-connect/auth',
     token_endpoint: 'http://localhost:8080/realms/master/protocol/openid-connect/token',
     jwks_uri: 'http://localhost:8080/realms/master/protocol/openid-connect/certs',
-    introspection_endpoint:
-      'http://localhost:8080/realms/master/protocol/openid-connect/token/introspect',
+    introspection_endpoint: `${ORIGIN}${INTROSPECT_PATH}`,
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    nock.disableNetConnect();
   });
 
   afterEach(() => {
+    nock.cleanAll();
+    nock.enableNetConnect();
     vi.restoreAllMocks();
   });
 
   describe('initialize', () => {
     it('should load metadata from URL', async () => {
-      vi.mocked(axios.get).mockResolvedValue({ data: mockMetadata });
+      const scope = nock(ORIGIN).get(METADATA_PATH).reply(200, mockMetadata);
 
       const verifier = new TokenVerifier({
-        authServerMetadata: 'http://localhost:8080/realms/master/.well-known/openid-configuration',
+        authServerMetadata: `${ORIGIN}${METADATA_PATH}`,
         expectedAudience: 'http://localhost:3000',
       });
 
       await verifier.initialize();
 
-      expect(axios.get).toHaveBeenCalledWith(
-        'http://localhost:8080/realms/master/.well-known/openid-configuration'
-      );
+      expect(scope.isDone()).toBe(true);
     });
 
     it('should use provided metadata object', async () => {
@@ -47,41 +51,39 @@ describe('TokenVerifier', () => {
         expectedAudience: 'http://localhost:3000',
       });
 
-      await verifier.initialize();
-
-      expect(axios.get).not.toHaveBeenCalled();
+      // No HTTP call is made when metadata is supplied inline.
+      await expect(verifier.initialize()).resolves.toBeUndefined();
+      expect(nock.pendingMocks()).toHaveLength(0);
     });
 
     it('should throw error if metadata loading fails', async () => {
-      vi.mocked(axios.get).mockRejectedValue(new Error('Network error'));
+      nock(ORIGIN).get(METADATA_PATH).reply(500, { error: 'server_error' });
 
       const verifier = new TokenVerifier({
-        authServerMetadata: 'http://localhost:8080/realms/master/.well-known/openid-configuration',
+        authServerMetadata: `${ORIGIN}${METADATA_PATH}`,
         expectedAudience: 'http://localhost:3000',
       });
 
-      await expect(verifier.initialize()).rejects.toThrow(
-        'Failed to load OAuth server metadata: Network error'
-      );
+      await expect(verifier.initialize()).rejects.toThrow(/Failed to load OAuth server metadata/);
     });
   });
 
   describe('verifyToken - introspection', () => {
     it('should verify token via introspection', async () => {
-      vi.mocked(axios.get).mockResolvedValue({ data: mockMetadata });
-      vi.mocked(axios.post).mockResolvedValue({
-        data: {
+      nock(ORIGIN).get('/.well-known/openid-configuration').reply(200, mockMetadata);
+      nock(ORIGIN)
+        .post(INTROSPECT_PATH)
+        .reply(200, {
           active: true,
           client_id: 'test-client',
           scope: 'mcp:tools mcp:admin',
           exp: Math.floor(Date.now() / 1000) + 3600,
           aud: 'http://localhost:3000',
           sub: 'user123',
-        },
-      });
+        });
 
       const verifier = new TokenVerifier({
-        authServerMetadata: 'http://localhost:8080/.well-known/openid-configuration',
+        authServerMetadata: `${ORIGIN}/.well-known/openid-configuration`,
         expectedAudience: 'http://localhost:3000',
         clientId: 'mcp-server',
         clientSecret: 'secret',
@@ -99,21 +101,10 @@ describe('TokenVerifier', () => {
         audience: 'http://localhost:3000',
         subject: 'user123',
       });
-
-      expect(axios.post).toHaveBeenCalledWith(
-        mockMetadata.introspection_endpoint,
-        expect.any(URLSearchParams),
-        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-      );
     });
 
     it('should reject inactive tokens', async () => {
-      vi.mocked(axios.get).mockResolvedValue({ data: mockMetadata });
-      vi.mocked(axios.post).mockResolvedValue({
-        data: {
-          active: false,
-        },
-      });
+      nock(ORIGIN).post(INTROSPECT_PATH).reply(200, { active: false });
 
       const verifier = new TokenVerifier({
         authServerMetadata: mockMetadata,
@@ -127,14 +118,9 @@ describe('TokenVerifier', () => {
     });
 
     it('should reject tokens with invalid audience', async () => {
-      vi.mocked(axios.get).mockResolvedValue({ data: mockMetadata });
-      vi.mocked(axios.post).mockResolvedValue({
-        data: {
-          active: true,
-          aud: 'http://different-server:3000',
-          scope: 'mcp:tools',
-        },
-      });
+      nock(ORIGIN)
+        .post(INTROSPECT_PATH)
+        .reply(200, { active: true, aud: 'http://different-server:3000', scope: 'mcp:tools' });
 
       const verifier = new TokenVerifier({
         authServerMetadata: mockMetadata,
@@ -148,14 +134,9 @@ describe('TokenVerifier', () => {
     });
 
     it('should reject tokens with missing scopes', async () => {
-      vi.mocked(axios.get).mockResolvedValue({ data: mockMetadata });
-      vi.mocked(axios.post).mockResolvedValue({
-        data: {
-          active: true,
-          aud: 'http://localhost:3000',
-          scope: 'mcp:tools',
-        },
-      });
+      nock(ORIGIN)
+        .post(INTROSPECT_PATH)
+        .reply(200, { active: true, aud: 'http://localhost:3000', scope: 'mcp:tools' });
 
       const verifier = new TokenVerifier({
         authServerMetadata: mockMetadata,
@@ -170,17 +151,7 @@ describe('TokenVerifier', () => {
     });
 
     it('should handle introspection endpoint errors', async () => {
-      vi.mocked(axios.get).mockResolvedValue({ data: mockMetadata });
-      vi.mocked(axios.post).mockRejectedValue({
-        isAxiosError: true,
-        response: {
-          data: {
-            error_description: 'Invalid token',
-          },
-        },
-      });
-
-      vi.mocked(axios.isAxiosError).mockReturnValue(true);
+      nock(ORIGIN).post(INTROSPECT_PATH).reply(400, { error_description: 'Invalid token' });
 
       const verifier = new TokenVerifier({
         authServerMetadata: mockMetadata,
@@ -229,7 +200,6 @@ describe('TokenVerifier', () => {
         exp: Math.floor(Date.now() / 1000) + 3600,
       };
 
-      vi.mocked(axios.get).mockResolvedValue({ data: mockMetadata });
       vi.mocked(jose.createRemoteJWKSet).mockReturnValue(mockJWKS as any);
       vi.mocked(jose.jwtVerify).mockResolvedValue({
         payload: mockPayload,
@@ -269,7 +239,6 @@ describe('TokenVerifier', () => {
         exp: Math.floor(Date.now() / 1000) + 3600,
       };
 
-      vi.mocked(axios.get).mockResolvedValue({ data: mockMetadata });
       vi.mocked(jose.createRemoteJWKSet).mockReturnValue(mockJWKS as any);
       vi.mocked(jose.jwtVerify).mockResolvedValue({
         payload: mockPayload,
@@ -298,7 +267,6 @@ describe('TokenVerifier', () => {
         exp: Math.floor(Date.now() / 1000) + 3600,
       };
 
-      vi.mocked(axios.get).mockResolvedValue({ data: mockMetadata });
       vi.mocked(jose.createRemoteJWKSet).mockReturnValue(mockJWKS as any);
       vi.mocked(jose.jwtVerify).mockResolvedValue({
         payload: mockPayload,
@@ -338,7 +306,6 @@ describe('TokenVerifier', () => {
     });
 
     it('should handle JWT verification failures', async () => {
-      vi.mocked(axios.get).mockResolvedValue({ data: mockMetadata });
       vi.mocked(jose.createRemoteJWKSet).mockReturnValue(vi.fn() as any);
       vi.mocked(jose.jwtVerify).mockRejectedValue(new Error('Invalid signature'));
 
@@ -365,7 +332,6 @@ describe('TokenVerifier', () => {
         exp: Math.floor(Date.now() / 1000) + 3600,
       };
 
-      vi.mocked(axios.get).mockResolvedValue({ data: mockMetadata });
       vi.mocked(jose.createRemoteJWKSet).mockReturnValue(mockJWKS as any);
       vi.mocked(jose.jwtVerify).mockResolvedValue({
         payload: mockPayload,
@@ -387,14 +353,9 @@ describe('TokenVerifier', () => {
 
   describe('validateAudience', () => {
     it('should validate audience with trailing slash normalization', async () => {
-      vi.mocked(axios.get).mockResolvedValue({ data: mockMetadata });
-      vi.mocked(axios.post).mockResolvedValue({
-        data: {
-          active: true,
-          aud: 'http://localhost:3000/',
-          scope: 'mcp:tools',
-        },
-      });
+      nock(ORIGIN)
+        .post(INTROSPECT_PATH)
+        .reply(200, { active: true, aud: 'http://localhost:3000/', scope: 'mcp:tools' });
 
       const verifier = new TokenVerifier({
         authServerMetadata: mockMetadata,
@@ -409,14 +370,13 @@ describe('TokenVerifier', () => {
     });
 
     it('should validate audience array', async () => {
-      vi.mocked(axios.get).mockResolvedValue({ data: mockMetadata });
-      vi.mocked(axios.post).mockResolvedValue({
-        data: {
+      nock(ORIGIN)
+        .post(INTROSPECT_PATH)
+        .reply(200, {
           active: true,
           aud: ['http://localhost:3000', 'http://example.com'],
           scope: 'mcp:tools',
-        },
-      });
+        });
 
       const verifier = new TokenVerifier({
         authServerMetadata: mockMetadata,

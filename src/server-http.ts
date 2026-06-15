@@ -16,6 +16,10 @@ const CONFIG = createHttpTransportConfigFromEnv();
 function logEnvironmentValidation(): void {
   const validation = validateEnvironmentConfig();
 
+  validation.infos.forEach((info) => {
+    console.log(`  ℹ ${info}`);
+  });
+
   if (validation.warnings.length > 0) {
     console.log('Environment Configuration Warnings:');
     validation.warnings.forEach((warning) => {

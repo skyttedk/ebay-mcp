@@ -3,18 +3,22 @@
 import { dirname, join, resolve } from 'path';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { homedir, platform } from 'os';
+import { randomUUID } from 'crypto';
+import type { Server } from 'http';
 
-import axios from 'axios';
 import chalk from 'chalk';
 import { checkForUpdates } from '../utils/version.js';
+import { describeHttpError, httpRequest } from '../utils/http.js';
 import { config } from 'dotenv';
 import { fileURLToPath } from 'url';
 import { getOAuthAuthorizationUrl } from '../config/environment.js';
+import { startCallbackServer } from '../utils/oauth-helper.js';
 import { defineWizard, runWizard, ClackRenderer } from '../utils/setup-wizard.js';
-import { loadExistingConfig } from './setup-shared.js';
+import { loadExistingConfig, quoteEnvValue } from './setup-shared.js';
 import { configureLLMClient, detectLLMClients } from '../utils/llm-client-detector.js';
 import { runSecurityChecks, displaySecurityResults } from '../utils/security-checker.js';
 import { validateSetup, displayRecommendations } from '../utils/setup-validator.js';
+import { getErrorMessage } from '@/utils/errors.js';
 import type { EbayTokenCore } from '../types/ebay.js';
 
 config({ quiet: true });
@@ -72,6 +76,20 @@ const ui = {
   info: chalk.cyan,
 };
 
+const DEVELOPER_NAME = 'Yosef Hayim Sabag';
+const DEVELOPER_LINKEDIN = 'https://www.linkedin.com/in/yosef-hayim-sabag/';
+
+/** Render the wizard's branding header: logo, title, and developer credit. */
+function printWizardBanner(): void {
+  console.log(LOGO);
+  console.log(
+    ui.bold.white('            MCP Server Setup Wizard by ') + ebay.blue.bold(DEVELOPER_NAME)
+  );
+  console.log(
+    ui.dim('              Contact the developer: ') + ebay.blue.underline(DEVELOPER_LINKEDIN) + '\n'
+  );
+}
+
 // ─── Business-logic helpers (preserved from original) ─────────────────────────
 
 function parseAuthorizationCode(input: string): string | null {
@@ -104,6 +122,14 @@ interface TokenExchangeResult extends EbayTokenCore {
   refreshTokenExpiresIn: number;
 }
 
+/** eBay OAuth token endpoint response (snake_case as returned by the API). */
+interface OAuthTokenResponse {
+  access_token: string;
+  refresh_token?: string;
+  expires_in?: number;
+  refresh_token_expires_in?: number;
+}
+
 interface EbayUserInfo {
   userId: string;
   username: string;
@@ -123,25 +149,24 @@ async function exchangeAuthorizationCode(
   const baseUrl =
     environment === 'production' ? 'https://api.ebay.com' : 'https://api.sandbox.ebay.com';
   const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-  const response = await axios.post(
-    `${baseUrl}/identity/v1/oauth2/token`,
-    new URLSearchParams({
+  const response = await httpRequest<OAuthTokenResponse>({
+    method: 'POST',
+    url: `${baseUrl}/identity/v1/oauth2/token`,
+    body: new URLSearchParams({
       grant_type: 'authorization_code',
       code,
       redirect_uri: redirectUri,
-    }).toString(),
-    {
-      headers: {
-        Authorization: `Basic ${credentials}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    }
-  );
+    }),
+    headers: {
+      Authorization: `Basic ${credentials}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  });
   return {
     accessToken: response.data.access_token,
-    refreshToken: response.data.refresh_token,
-    expiresIn: response.data.expires_in,
-    refreshTokenExpiresIn: response.data.refresh_token_expires_in,
+    refreshToken: response.data.refresh_token ?? '',
+    expiresIn: response.data.expires_in ?? 0,
+    refreshTokenExpiresIn: response.data.refresh_token_expires_in ?? 0,
   };
 }
 
@@ -153,19 +178,18 @@ async function getAppAccessToken(
   const baseUrl =
     environment === 'production' ? 'https://api.ebay.com' : 'https://api.sandbox.ebay.com';
   const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-  const response = await axios.post(
-    `${baseUrl}/identity/v1/oauth2/token`,
-    new URLSearchParams({
+  const response = await httpRequest<OAuthTokenResponse>({
+    method: 'POST',
+    url: `${baseUrl}/identity/v1/oauth2/token`,
+    body: new URLSearchParams({
       grant_type: 'client_credentials',
       scope: 'https://api.ebay.com/oauth/api_scope',
-    }).toString(),
-    {
-      headers: {
-        Authorization: `Basic ${credentials}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    }
-  );
+    }),
+    headers: {
+      Authorization: `Basic ${credentials}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  });
   return response.data.access_token;
 }
 
@@ -178,25 +202,25 @@ async function verifyRefreshToken(
   const baseUrl =
     environment === 'production' ? 'https://api.ebay.com' : 'https://api.sandbox.ebay.com';
   const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-  const tokenResponse = await axios.post(
-    `${baseUrl}/identity/v1/oauth2/token`,
-    new URLSearchParams({
+  const tokenResponse = await httpRequest<OAuthTokenResponse>({
+    method: 'POST',
+    url: `${baseUrl}/identity/v1/oauth2/token`,
+    body: new URLSearchParams({
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
       scope:
         'https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.inventory',
-    }).toString(),
-    {
-      headers: {
-        Authorization: `Basic ${credentials}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    }
-  );
+    }),
+    headers: {
+      Authorization: `Basic ${credentials}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  });
   const accessToken = tokenResponse.data.access_token;
   const identityBase =
     environment === 'production' ? 'https://apiz.ebay.com' : 'https://apiz.sandbox.ebay.com';
-  const userResponse = await axios.get(`${identityBase}/commerce/identity/v1/user/`, {
+  const userResponse = await httpRequest<EbayUserInfo>({
+    url: `${identityBase}/commerce/identity/v1/user/`,
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
   });
   return { accessToken, userInfo: userResponse.data };
@@ -208,7 +232,8 @@ async function fetchEbayUserInfo(
 ): Promise<EbayUserInfo> {
   const identityBase =
     environment === 'production' ? 'https://apiz.ebay.com' : 'https://apiz.sandbox.ebay.com';
-  const response = await axios.get(`${identityBase}/commerce/identity/v1/user/`, {
+  const response = await httpRequest<EbayUserInfo>({
+    url: `${identityBase}/commerce/identity/v1/user/`,
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
   });
   return response.data;
@@ -260,7 +285,7 @@ function updateClaudeDesktopConfig(
         return {
           success: false,
           configPath,
-          error: `Invalid JSON in config: ${e instanceof Error ? e.message : 'parse error'}`,
+          error: `Invalid JSON in config: ${getErrorMessage(e, 'parse error')}`,
           details: 'Please fix the JSON syntax in your Claude config file',
         };
       }
@@ -299,7 +324,7 @@ function updateClaudeDesktopConfig(
     return {
       success: false,
       configPath,
-      error: error instanceof Error ? error.message : 'Unknown',
+      error: getErrorMessage(error, 'Unknown'),
     };
   }
 }
@@ -320,10 +345,10 @@ function formatDate(date: Date): string {
 function saveConfig(envConfig: Record<string, string>, environment: string): void {
   const envPath = join(PROJECT_ROOT, '.env');
   const marketplaceLine = envConfig.EBAY_MARKETPLACE_ID
-    ? `EBAY_MARKETPLACE_ID=${envConfig.EBAY_MARKETPLACE_ID}`
+    ? `EBAY_MARKETPLACE_ID=${quoteEnvValue(envConfig.EBAY_MARKETPLACE_ID)}`
     : '# EBAY_MARKETPLACE_ID=EBAY_US';
   const contentLanguageLine = envConfig.EBAY_CONTENT_LANGUAGE
-    ? `EBAY_CONTENT_LANGUAGE=${envConfig.EBAY_CONTENT_LANGUAGE}`
+    ? `EBAY_CONTENT_LANGUAGE=${quoteEnvValue(envConfig.EBAY_CONTENT_LANGUAGE)}`
     : '# EBAY_CONTENT_LANGUAGE=en-US';
   writeFileSync(
     envPath,
@@ -331,16 +356,16 @@ function saveConfig(envConfig: Record<string, string>, environment: string): voi
 # Last Updated: ${formatDate(new Date())}
 # Environment: ${environment}
 
-EBAY_CLIENT_ID=${envConfig.EBAY_CLIENT_ID || ''}
-EBAY_CLIENT_SECRET=${envConfig.EBAY_CLIENT_SECRET || ''}
-EBAY_REDIRECT_URI=${envConfig.EBAY_REDIRECT_URI || ''}
+EBAY_CLIENT_ID=${quoteEnvValue(envConfig.EBAY_CLIENT_ID || '')}
+EBAY_CLIENT_SECRET=${quoteEnvValue(envConfig.EBAY_CLIENT_SECRET || '')}
+EBAY_REDIRECT_URI=${quoteEnvValue(envConfig.EBAY_REDIRECT_URI || '')}
 EBAY_ENVIRONMENT=${environment}
 ${marketplaceLine}
 ${contentLanguageLine}
 
-EBAY_USER_REFRESH_TOKEN=${envConfig.EBAY_USER_REFRESH_TOKEN || ''}
-EBAY_USER_ACCESS_TOKEN=${envConfig.EBAY_USER_ACCESS_TOKEN || ''}
-EBAY_APP_ACCESS_TOKEN=${envConfig.EBAY_APP_ACCESS_TOKEN || ''}
+EBAY_USER_REFRESH_TOKEN=${quoteEnvValue(envConfig.EBAY_USER_REFRESH_TOKEN || '')}
+EBAY_USER_ACCESS_TOKEN=${quoteEnvValue(envConfig.EBAY_USER_ACCESS_TOKEN || '')}
+EBAY_APP_ACCESS_TOKEN=${quoteEnvValue(envConfig.EBAY_APP_ACCESS_TOKEN || '')}
 `,
     'utf-8'
   );
@@ -410,6 +435,100 @@ function displayUserInfo(userInfo: EbayUserInfo): void {
   console.log('');
 }
 
+/** Default loopback port for the OAuth auto-capture callback server. */
+const DEFAULT_CALLBACK_PORT = 3000;
+
+/**
+ * Resolve the loopback port for the auto-capture callback server. Reads the
+ * `EBAY_OAUTH_CALLBACK_PORT` override and falls back to
+ * {@link DEFAULT_CALLBACK_PORT} for anything non-numeric or out of range.
+ *
+ * Note: eBay rejects `http://` and `localhost` for a RuName's auth-accepted URL
+ * (HTTPS is mandatory), so the loopback server must be fronted by an HTTPS
+ * tunnel that forwards to this port — the registered URL is the tunnel's, not
+ * `http://localhost:<port>`.
+ */
+function getCallbackPort(): number {
+  const raw = process.env.EBAY_OAUTH_CALLBACK_PORT;
+  const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
+  return Number.isInteger(parsed) && parsed > 0 && parsed < 65536 ? parsed : DEFAULT_CALLBACK_PORT;
+}
+
+/**
+ * Exchange an authorization code for tokens, verify the eBay account, mint an app
+ * token, report expiry, and sync Claude Desktop config. Shared by the paste-code
+ * and auto-capture OAuth paths so both behave identically; mutates `tokens` in place.
+ */
+async function completeOAuthWithCode(
+  authCode: string,
+  params: {
+    clientId: string;
+    clientSecret: string;
+    redirectUri: string;
+    environment: 'sandbox' | 'production';
+    answers: Record<string, string>;
+  },
+  tokens: { refreshToken?: string; accessToken?: string; appAccessToken?: string }
+): Promise<void> {
+  const { clientId, clientSecret, redirectUri, environment, answers } = params;
+  const stopSpinner = showSetupProgress('Exchanging authorization code for tokens');
+  try {
+    const result = await exchangeAuthorizationCode(
+      authCode,
+      clientId,
+      clientSecret,
+      redirectUri,
+      environment
+    );
+    stopSpinner();
+    showSuccess('Authorization code exchanged successfully!');
+    tokens.refreshToken = result.refreshToken;
+    tokens.accessToken = result.accessToken;
+    try {
+      const userInfo = await fetchEbayUserInfo(result.accessToken, environment);
+      showSuccess('Account verified!');
+      displayUserInfo(userInfo);
+    } catch (userError) {
+      const userMsg = describeHttpError(userError, 'Unknown');
+      showWarning(`Could not fetch account info: ${userMsg}`);
+      if (userMsg.toLowerCase().includes('access denied'))
+        showInfo('Normal if RuName lacks commerce.identity.readonly scope — tokens are valid.');
+    }
+    try {
+      tokens.appAccessToken = await getAppAccessToken(clientId, clientSecret, environment);
+      showSuccess('App access token obtained.');
+    } catch {
+      showWarning('Could not obtain app access token (user tokens still work).');
+    }
+    showInfo(`Access token expires in: ${Math.floor(result.expiresIn / 60)} minutes`);
+    showInfo(
+      `Refresh token expires in: ${Math.floor(result.refreshTokenExpiresIn / 60 / 60 / 24)} days`
+    );
+    if (isClaudeDesktopInstalled()) {
+      const r = updateClaudeDesktopConfig(
+        {
+          ...answers,
+          EBAY_USER_REFRESH_TOKEN: tokens.refreshToken ?? '',
+          EBAY_USER_ACCESS_TOKEN: tokens.accessToken ?? '',
+        },
+        environment
+      );
+      if (r.success) {
+        showSuccess('Claude Desktop config updated.');
+        if (r.details) showInfo(r.details);
+      } else showWarning(`Could not update Claude Desktop: ${r.error}`);
+    }
+  } catch (error) {
+    stopSpinner();
+    const msg = describeHttpError(error, 'Unknown error');
+    showError(`Failed to exchange code: ${msg}`);
+    console.log('  Common issues:');
+    console.log('  • Authorization code expired (codes are valid for ~5 minutes)');
+    console.log('  • Code was already used (each code can only be used once)');
+    console.log('  • Redirect URI mismatch\n');
+  }
+}
+
 // ─── Setup wizard ─────────────────────────────────────────────────────────────
 
 /**
@@ -430,9 +549,7 @@ export async function runSetup(): Promise<void> {
 
   const args = parseArgs();
 
-  console.log(LOGO);
-  console.log(ui.bold.white('            MCP Server Setup Wizard by Yosef Hayim Sabag'));
-  console.log(ui.dim('              Powered by ') + chalk.hex('#0064D2').bold('prompts') + '\n');
+  printWizardBanner();
 
   console.log(ui.dim('  Welcome to the eBay MCP Server setup wizard!\n'));
   console.log('  This wizard will help you:\n');
@@ -546,9 +663,13 @@ export async function runSetup(): Promise<void> {
         message: 'Set up OAuth for higher API rate limits:',
         description: 'App credentials: 1,000 req/day  •  User OAuth: 10,000–50,000 req/day',
         options: [
-          { value: 'existing', label: '📝 I have a refresh token' },
-          { value: 'manual', label: '🔗 Generate OAuth URL (opens browser)' },
+          {
+            value: 'manual',
+            label: '🔗 Generate OAuth URL (opens browser, paste code) — recommended',
+          },
           { value: 'code', label: '🔑 Paste authorization code (already have code)' },
+          { value: 'existing', label: '📝 I have a refresh token' },
+          { value: 'auto', label: '🤖 Auto-capture (advanced — needs a public HTTPS tunnel)' },
           { value: 'skip', label: '⏭️  Skip for now (1,000 req/day limit)' },
         ],
       },
@@ -602,9 +723,13 @@ export async function runSetup(): Promise<void> {
         if (hasToken) {
           return [
             { value: 'keep', label: '✓  Keep and verify existing token' },
-            { value: 'existing', label: '📝 Replace with a different refresh token' },
-            { value: 'manual', label: '🔗 Generate OAuth URL (opens browser)' },
+            {
+              value: 'manual',
+              label: '🔗 Generate OAuth URL (opens browser, paste code) — recommended',
+            },
             { value: 'code', label: '🔑 Paste authorization code' },
+            { value: 'existing', label: '📝 Replace with a different refresh token' },
+            { value: 'auto', label: '🤖 Auto-capture (advanced — needs a public HTTPS tunnel)' },
             { value: 'skip', label: '⏭️  Skip for now' },
           ];
         }
@@ -645,72 +770,149 @@ export async function runSetup(): Promise<void> {
       if (stepId === 'oauth-method') {
         const method = value as string;
 
-        if (method === 'keep') {
-          const stopSpinner = showSetupProgress('Verifying existing refresh token...');
-          try {
-            const { accessToken, userInfo } = await verifyRefreshToken(
-              existingConfig.EBAY_USER_REFRESH_TOKEN,
-              clientId,
-              clientSecret,
-              environment
-            );
-            stopSpinner();
-            showSuccess('Refresh token verified!');
-            tokens.refreshToken = existingConfig.EBAY_USER_REFRESH_TOKEN;
-            tokens.accessToken = accessToken;
-            displayUserInfo(userInfo);
+        switch (method) {
+          case 'keep': {
+            const stopSpinner = showSetupProgress('Verifying existing refresh token...');
             try {
-              tokens.appAccessToken = await getAppAccessToken(clientId, clientSecret, environment);
-              showSuccess('App access token obtained.');
-            } catch {
-              showWarning('Could not obtain app access token (user tokens still work).');
-            }
-            if (isClaudeDesktopInstalled()) {
-              const r = updateClaudeDesktopConfig(
-                {
-                  ...(a as Record<string, string>),
-                  EBAY_USER_REFRESH_TOKEN: tokens.refreshToken ?? '',
-                },
+              const { accessToken, userInfo } = await verifyRefreshToken(
+                existingConfig.EBAY_USER_REFRESH_TOKEN,
+                clientId,
+                clientSecret,
                 environment
               );
-              if (r.success) {
-                showSuccess('Claude Desktop config updated.');
-                if (r.details) showInfo(r.details);
-              } else showWarning(`Could not update Claude Desktop: ${r.error}`);
+              stopSpinner();
+              showSuccess('Refresh token verified!');
+              tokens.refreshToken = existingConfig.EBAY_USER_REFRESH_TOKEN;
+              tokens.accessToken = accessToken;
+              displayUserInfo(userInfo);
+              try {
+                tokens.appAccessToken = await getAppAccessToken(
+                  clientId,
+                  clientSecret,
+                  environment
+                );
+                showSuccess('App access token obtained.');
+              } catch {
+                showWarning('Could not obtain app access token (user tokens still work).');
+              }
+              if (isClaudeDesktopInstalled()) {
+                const r = updateClaudeDesktopConfig(
+                  {
+                    ...(a as Record<string, string>),
+                    EBAY_USER_REFRESH_TOKEN: tokens.refreshToken ?? '',
+                  },
+                  environment
+                );
+                if (r.success) {
+                  showSuccess('Claude Desktop config updated.');
+                  if (r.details) showInfo(r.details);
+                } else showWarning(`Could not update Claude Desktop: ${r.error}`);
+              }
+            } catch (error) {
+              stopSpinner();
+              const msg = describeHttpError(error, 'Unknown error');
+              showError(`Token verification failed: ${msg}`);
+              if (msg.toLowerCase().includes('access denied'))
+                showWarning('Token may be missing required OAuth scopes.');
+              else showWarning('Existing token may be expired or invalid.');
+              showInfo('Continuing with existing token — re-run setup to refresh it.');
+              tokens.refreshToken = existingConfig.EBAY_USER_REFRESH_TOKEN;
             }
-          } catch (error) {
-            stopSpinner();
-            const msg = axios.isAxiosError(error)
-              ? error.response?.data?.error_description ||
-                error.response?.data?.errors?.[0]?.message ||
-                error.message
-              : error instanceof Error
-                ? error.message
-                : 'Unknown error';
-            showError(`Token verification failed: ${msg}`);
-            if (msg.toLowerCase().includes('access denied'))
-              showWarning('Token may be missing required OAuth scopes.');
-            else showWarning('Existing token may be expired or invalid.');
-            showInfo('Continuing with existing token — re-run setup to refresh it.');
-            tokens.refreshToken = existingConfig.EBAY_USER_REFRESH_TOKEN;
+            context.setNextStep(finalStepId);
+            break;
           }
-          context.setNextStep(finalStepId);
-        } else if (method === 'existing') {
-          context.setNextStep('oauth-token');
-        } else if (method === 'manual') {
-          const authUrl = getOAuthAuthorizationUrl(clientId, redirectUri, environment);
-          context.showNote('OAuth Authorization URL', authUrl);
-          await context.openBrowser(authUrl);
-          showInfo('1. Sign in to your eBay account in the browser');
-          showInfo('2. Grant permissions to your app');
-          showInfo('3. Copy the redirect URL or the code parameter, then paste it below');
-          console.log('');
-          context.setNextStep('oauth-code');
-        } else if (method === 'code') {
-          context.setNextStep('oauth-code');
-        } else if (method === 'skip') {
-          showWarning("Skipping OAuth — you'll be limited to 1,000 requests/day.");
-          context.setNextStep(finalStepId);
+          case 'existing':
+            context.setNextStep('oauth-token');
+            break;
+          case 'auto': {
+            const callbackPort = getCallbackPort();
+            const callbackUrl = `http://localhost:${callbackPort}/oauth/callback`;
+            const state = randomUUID();
+            context.showNote(
+              'Auto-capture (local callback server)',
+              [
+                `A loopback server listens at ${callbackUrl} to catch eBay's redirect.`,
+                'eBay does NOT accept http:// or localhost as a RuName auth-accepted URL —',
+                'it requires a public HTTPS URL — so expose this port through an HTTPS tunnel',
+                'and register the tunnel URL (one-time, in the eBay Developer Portal):',
+                '',
+                `  1. Start an HTTPS tunnel to the port:   ngrok http ${callbackPort}`,
+                '  2. https://developer.ebay.com/my/keys → your RuName → "Your auth accepted URL":',
+                '     set it to   https://<your-tunnel-host>/oauth/callback',
+                '',
+                "The tunnel forwards eBay's redirect here, where the code is captured.",
+                'Override the local port with EBAY_OAUTH_CALLBACK_PORT.',
+              ].join('\n')
+            );
+            const authUrl = getOAuthAuthorizationUrl(
+              clientId,
+              redirectUri,
+              environment,
+              undefined,
+              undefined,
+              state
+            );
+            let server: Server | undefined;
+            const stopSpinner = showSetupProgress(
+              'Waiting for eBay to redirect back (up to 5 min)'
+            );
+            try {
+              const started = await startCallbackServer(callbackPort, 300000, {
+                expectedState: state,
+              });
+              server = started.server;
+              await context.openBrowser(authUrl);
+              showInfo('1. Sign in to your eBay account in the browser');
+              showInfo('2. Grant permissions to your app');
+              showInfo('3. eBay redirects back automatically — no copy-paste needed');
+              const result = await started.codePromise;
+              stopSpinner();
+              if (!result.code)
+                throw new Error(
+                  result.errorDescription ?? result.error ?? 'No authorization code received'
+                );
+              showSuccess('Authorization code captured automatically!');
+              await completeOAuthWithCode(
+                result.code,
+                {
+                  clientId,
+                  clientSecret,
+                  redirectUri,
+                  environment,
+                  answers: a as Record<string, string>,
+                },
+                tokens
+              );
+              context.setNextStep(finalStepId);
+            } catch (error) {
+              stopSpinner();
+              showError(`Auto-capture failed: ${getErrorMessage(error, 'Unknown error')}`);
+              showInfo('Falling back to manual paste — copy the redirect URL from your browser.');
+              context.showNote('OAuth Authorization URL', authUrl);
+              context.setNextStep('oauth-code');
+            } finally {
+              server?.close();
+            }
+            break;
+          }
+          case 'manual': {
+            const authUrl = getOAuthAuthorizationUrl(clientId, redirectUri, environment);
+            context.showNote('OAuth Authorization URL', authUrl);
+            await context.openBrowser(authUrl);
+            showInfo('1. Sign in to your eBay account in the browser');
+            showInfo('2. Grant permissions to your app');
+            showInfo('3. Copy the redirect URL or the code parameter, then paste it below');
+            console.log('');
+            context.setNextStep('oauth-code');
+            break;
+          }
+          case 'code':
+            context.setNextStep('oauth-code');
+            break;
+          case 'skip':
+            showWarning("Skipping OAuth — you'll be limited to 1,000 requests/day.");
+            context.setNextStep(finalStepId);
+            break;
         }
       }
 
@@ -750,13 +952,7 @@ export async function runSetup(): Promise<void> {
           }
         } catch (error) {
           stopSpinner();
-          const msg = axios.isAxiosError(error)
-            ? error.response?.data?.error_description ||
-              error.response?.data?.errors?.[0]?.message ||
-              error.message
-            : error instanceof Error
-              ? error.message
-              : 'Unknown error';
+          const msg = describeHttpError(error, 'Unknown error');
           showError(`Token verification failed: ${msg}`);
           showWarning("Token saved anyway — you may need to re-authenticate if it doesn't work.");
         }
@@ -767,72 +963,17 @@ export async function runSetup(): Promise<void> {
       if (stepId === 'oauth-code') {
         const authCode = parseAuthorizationCode(String(value));
         if (!authCode) return;
-        const stopSpinner = showSetupProgress('Exchanging authorization code for tokens...');
-        try {
-          const result = await exchangeAuthorizationCode(
-            authCode,
+        await completeOAuthWithCode(
+          authCode,
+          {
             clientId,
             clientSecret,
             redirectUri,
-            environment
-          );
-          stopSpinner();
-          showSuccess('Authorization code exchanged successfully!');
-          tokens.refreshToken = result.refreshToken;
-          tokens.accessToken = result.accessToken;
-          try {
-            const userInfo = await fetchEbayUserInfo(result.accessToken, environment);
-            showSuccess('Account verified!');
-            displayUserInfo(userInfo);
-          } catch (userError) {
-            const userMsg = axios.isAxiosError(userError)
-              ? userError.response?.data?.errors?.[0]?.message || userError.message
-              : userError instanceof Error
-                ? userError.message
-                : 'Unknown';
-            showWarning(`Could not fetch account info: ${userMsg}`);
-            if (userMsg.toLowerCase().includes('access denied'))
-              showInfo(
-                'Normal if RuName lacks commerce.identity.readonly scope — tokens are valid.'
-              );
-          }
-          try {
-            tokens.appAccessToken = await getAppAccessToken(clientId, clientSecret, environment);
-            showSuccess('App access token obtained.');
-          } catch {
-            showWarning('Could not obtain app access token (user tokens still work).');
-          }
-          showInfo(`Access token expires in: ${Math.floor(result.expiresIn / 60)} minutes`);
-          showInfo(
-            `Refresh token expires in: ${Math.floor(result.refreshTokenExpiresIn / 60 / 60 / 24)} days`
-          );
-          if (isClaudeDesktopInstalled()) {
-            const r = updateClaudeDesktopConfig(
-              {
-                ...(a as Record<string, string>),
-                EBAY_USER_REFRESH_TOKEN: tokens.refreshToken ?? '',
-                EBAY_USER_ACCESS_TOKEN: tokens.accessToken ?? '',
-              },
-              environment
-            );
-            if (r.success) {
-              showSuccess('Claude Desktop config updated.');
-              if (r.details) showInfo(r.details);
-            } else showWarning(`Could not update Claude Desktop: ${r.error}`);
-          }
-        } catch (error) {
-          stopSpinner();
-          const msg = axios.isAxiosError(error)
-            ? error.response?.data?.error_description || error.message
-            : error instanceof Error
-              ? error.message
-              : 'Unknown error';
-          showError(`Failed to exchange code: ${msg}`);
-          console.log('  Common issues:');
-          console.log('  • Authorization code expired (codes are valid for ~5 minutes)');
-          console.log('  • Code was already used (each code can only be used once)');
-          console.log('  • Redirect URI mismatch\n');
-        }
+            environment,
+            answers: a as Record<string, string>,
+          },
+          tokens
+        );
         context.setNextStep(finalStepId);
       }
 
@@ -899,9 +1040,7 @@ export async function runSetup(): Promise<void> {
   stopSave();
   showSuccess('Configuration saved to .env\n');
 
-  console.log(LOGO);
-  console.log(ui.bold.white('            MCP Server Setup Wizard by Yosef Hayim Sabag'));
-  console.log(ui.dim('              Powered by ') + chalk.hex('#0064D2').bold('prompts') + '\n');
+  printWizardBanner();
 
   console.log(ui.bold.green('\n  🎉 Setup Complete!\n'));
   showBox('Configuration Summary', [

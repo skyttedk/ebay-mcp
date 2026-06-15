@@ -1,18 +1,24 @@
 #!/usr/bin/env node
 
-import axios from 'axios';
 import chalk from 'chalk';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 'fs';
 import { join, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
+import { httpRequest } from '../utils/http.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const PROJECT_ROOT = join(__dirname, '../..');
 const DOCS_DIR = join(PROJECT_ROOT, 'docs');
 const TYPES_DIR = join(PROJECT_ROOT, 'src/types');
-const TOOLS_DIR = join(PROJECT_ROOT, 'src/tools/definitions');
+// Tool definitions live under both the co-located `categories/` modules and the
+// legacy `definitions/` tree during migration; scan both recursively so the
+// coverage report stays accurate regardless of where a tool is declared.
+const TOOLS_DIRS = [
+  join(PROJECT_ROOT, 'src/tools/categories'),
+  join(PROJECT_ROOT, 'src/tools/definitions'),
+];
 
 const ui = {
   success: chalk.green,
@@ -119,23 +125,41 @@ async function downloadSpecs(): Promise<number> {
   console.log(ui.dim(`  Found ${urls.length} spec URLs\n`));
 
   let downloaded = 0;
+  let failed = 0;
   for (const url of urls) {
     const fileName = basename(url);
     const folderName = SPEC_FOLDER_MAP[fileName] || 'other-apis';
     const folderPath = join(DOCS_DIR, folderName);
     const filePath = join(folderPath, fileName);
 
+    // Spinner is started outside the try so the `finally` always clears its
+    // interval — otherwise a failed download leaks a timer that keeps the Node
+    // event loop alive and the process never exits.
+    const stopSpinner = showSpinner(`Downloading ${fileName}...`);
     try {
       mkdirSync(folderPath, { recursive: true });
-      const stopSpinner = showSpinner(`Downloading ${fileName}...`);
-      const response = await axios.get(url, { responseType: 'arraybuffer' });
-      stopSpinner();
+      const response = await httpRequest<Buffer>({
+        url,
+        responseType: 'arraybuffer',
+        timeoutMs: 20000,
+      });
       writeFileSync(filePath, response.data);
       console.log(`  ${ui.success('✓')} ${fileName}`);
       downloaded++;
     } catch (error) {
       console.log(`  ${ui.error('✗')} ${fileName}: ${(error as Error).message}`);
+      failed++;
+    } finally {
+      stopSpinner();
     }
+  }
+
+  if (failed > 0 && downloaded === 0) {
+    console.log(
+      ui.error(
+        `\n  ✗ All ${failed} spec downloads failed — eBay is likely blocking automated requests (HTTP 403).`
+      )
+    );
   }
 
   return downloaded;
@@ -248,24 +272,29 @@ function extractEndpointsFromSpecs(): EndpointInfo[] {
   return endpoints;
 }
 
-function getImplementedTools(): Set<string> {
-  const tools = new Set<string>();
+function collectToolNames(dir: string, tools: Set<string>): void {
+  if (!existsSync(dir)) return;
 
-  if (!existsSync(TOOLS_DIR)) return tools;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = join(dir, entry.name);
 
-  const files = readdirSync(TOOLS_DIR, { withFileTypes: true });
-
-  for (const file of files) {
-    if (file.isFile() && file.name.endsWith('.ts')) {
-      const content = readFileSync(join(TOOLS_DIR, file.name), 'utf-8');
-
+    if (entry.isDirectory()) {
+      collectToolNames(fullPath, tools);
+    } else if (entry.isFile() && entry.name.endsWith('.ts')) {
+      const content = readFileSync(fullPath, 'utf-8');
       const nameMatches = content.matchAll(/name:\s*['"`]([^'"`]+)['"`]/g);
       for (const match of nameMatches) {
         tools.add(match[1]);
       }
     }
   }
+}
 
+function getImplementedTools(): Set<string> {
+  const tools = new Set<string>();
+  for (const dir of TOOLS_DIRS) {
+    collectToolNames(dir, tools);
+  }
   return tools;
 }
 
@@ -600,7 +629,17 @@ ${ui.bold('What this does:')}
     report.specsDownloaded = await downloadSpecs();
   }
 
-  if (!reportOnly && !skipTypes) {
+  // If the download step ran but fetched nothing (missing manifest or blocked
+  // requests), the coverage numbers below describe the cached specs on disk —
+  // not eBay's current API. Flag it loudly so a stale run is never mistaken for
+  // a clean "100% coverage, 0 missing" result.
+  const usingStaleSpecs = !reportOnly && !skipDownload && report.specsDownloaded === 0;
+
+  // Don't regenerate types when nothing was downloaded: the inputs on disk are
+  // unchanged, so a regen only risks churn (and can break the build if the
+  // generator's interface naming drifts from what the code imports). Use
+  // --skip-download to deliberately regenerate from on-disk specs.
+  if (!reportOnly && !skipTypes && !usingStaleSpecs) {
     report.typesGenerated = generateTypes();
   }
 
@@ -612,7 +651,20 @@ ${ui.bold('What this does:')}
   showMissingEndpoints(analysis.missing);
   generateReport(report);
 
-  console.log(ui.bold.green('✓ Sync complete!\n'));
+  if (usingStaleSpecs) {
+    console.log(
+      ui.warning(
+        '\n  ⚠ No specs were downloaded — coverage above reflects the cached specs on disk, not eBay live.'
+      )
+    );
+    console.log(
+      ui.dim(
+        '    Refresh the specs (the eBay docs URLs return 403 to scripts) before trusting these numbers.'
+      )
+    );
+  }
+
+  console.log(ui.bold.green('\n✓ Sync complete!\n'));
 }
 
 main().catch((error) => {

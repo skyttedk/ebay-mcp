@@ -1,20 +1,6 @@
-import {
-  accountTools,
-  analyticsTools,
-  communicationTools,
-  developerTools,
-  fulfillmentTools,
-  inventoryTools,
-  marketingTools,
-  metadataTools,
-  otherApiTools,
-  taxonomyTools,
-  tokenManagementTools,
-  tradingTools,
-  type ToolDefinition,
-} from '@/tools/definitions/index.js';
-import { toolHandlers, type ToolHandler } from '@/tools/tool-handlers/index.js';
-import { chatGptTools } from '@/tools/tool-definitions.js';
+import { handlerOnlyEntries, registeredEntries } from '@/tools/categories/index.js';
+import type { ToolDefinition } from '@/tools/definitions/types.js';
+import type { ToolHandler } from '@/tools/tool-handlers/types.js';
 
 /** Runtime registry entry pairing a public tool definition with its executable handler. */
 export interface ToolEntry {
@@ -29,32 +15,20 @@ export interface ToolRegistryValidation {
   orphanHandlers: string[];
 }
 
-const chatConnectorTools = chatGptTools.filter(
-  (tool) => tool.name === 'search' || tool.name === 'fetch'
+/** Handler lookup keyed by tool name, including handler-only (unadvertised) tools. */
+const handlerByName: Record<string, ToolHandler> = Object.fromEntries(
+  [...registeredEntries, ...handlerOnlyEntries].map((entry) => [
+    entry.definition.name,
+    entry.handler,
+  ])
 );
-
-const toolDefinitions: ToolDefinition[] = [
-  ...chatConnectorTools,
-  ...tokenManagementTools,
-  ...accountTools,
-  ...inventoryTools,
-  ...fulfillmentTools,
-  ...marketingTools,
-  ...analyticsTools,
-  ...metadataTools,
-  ...taxonomyTools,
-  ...communicationTools,
-  ...otherApiTools,
-  ...developerTools,
-  ...tradingTools,
-];
 
 let cachedEntries: ToolEntry[] | undefined;
 
 /** Validates that tool definitions have unique names and matching handlers. */
 export function validateToolRegistry(
-  definitions: ToolDefinition[] = toolDefinitions,
-  handlers: Record<string, ToolHandler> = toolHandlers
+  definitions: ToolDefinition[] = registeredEntries.map((entry) => entry.definition),
+  handlers: Record<string, ToolHandler> = handlerByName
 ): ToolRegistryValidation {
   const seenNames = new Set<string>();
   const duplicateNames = new Set<string>();
@@ -101,10 +75,7 @@ export function getToolEntries(): ToolEntry[] {
   }
 
   assertRunnableRegistry();
-  cachedEntries = toolDefinitions.map((definition) => ({
-    definition,
-    handler: toolHandlers[definition.name],
-  }));
+  cachedEntries = registeredEntries;
   return cachedEntries;
 }
 
@@ -115,7 +86,7 @@ export function getToolDefinitions(): ToolDefinition[] {
 
 /** Looks up the handler registered for a tool name, if one exists. */
 export function getToolHandler(toolName: string): ToolHandler | undefined {
-  return toolHandlers[toolName];
+  return handlerByName[toolName];
 }
 
 /** Executes a registered tool handler or throws when the tool name is unknown. */

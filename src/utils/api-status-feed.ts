@@ -4,7 +4,7 @@
  */
 
 import { XMLParser } from 'fast-xml-parser';
-import axios from 'axios';
+import { httpRequest, isHttpError } from './http.js';
 
 const RSS_URL = 'https://developer.ebay.com/rss/api-status';
 
@@ -88,13 +88,14 @@ export async function getApiStatusFeed(
   const { limit = 20, status: statusFilter, api: apiFilter } = options;
 
   try {
-    const response = await axios.get(RSS_URL, {
-      timeout: 15_000,
+    const response = await httpRequest<string>({
+      url: RSS_URL,
+      timeoutMs: 15_000,
       responseType: 'text',
       headers: { Accept: 'application/rss+xml, application/xml, text/xml' },
     });
 
-    const xml = response.data as string;
+    const xml = response.data;
     const parser = new XMLParser({
       ignoreAttributes: true,
       trimValues: true,
@@ -123,8 +124,8 @@ export async function getApiStatusFeed(
     return { items };
   } catch (err: unknown) {
     const message =
-      axios.isAxiosError(err) && err.response?.status
-        ? `Feed unavailable (HTTP ${err.response.status})`
+      isHttpError(err) && err.status
+        ? `Feed unavailable (HTTP ${err.status})`
         : err instanceof Error
           ? err.message
           : 'Failed to fetch API status feed';

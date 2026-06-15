@@ -1,4 +1,5 @@
 import type { EbayApiClient } from '../client.js';
+import { withApiError } from '@/api/shared/request.js';
 
 /**
  * Compliance API - Listing compliance checks
@@ -17,7 +18,9 @@ export class ComplianceApi {
     if (complianceType) params.compliance_type = complianceType;
     if (offset) params.offset = offset;
     if (limit) params.limit = limit;
-    return await this.client.get(`${this.basePath}/listing_violation`, params);
+    return await withApiError('Failed to get listing violations', () =>
+      this.client.get(`${this.basePath}/listing_violation`, params)
+    );
   }
 
   /**
@@ -26,16 +29,20 @@ export class ComplianceApi {
   async getListingViolationsSummary(complianceType?: string) {
     const params: Record<string, string> = {};
     if (complianceType) params.compliance_type = complianceType;
-    return await this.client.get(`${this.basePath}/listing_violation_summary`, params);
+    return await withApiError('Failed to get listing violations summary', () =>
+      this.client.get(`${this.basePath}/listing_violation_summary`, params)
+    );
   }
 
   /**
    * Suppress a violation
    */
   async suppressViolation(listingViolationId: string) {
-    return await this.client.post(`${this.basePath}/suppress_violation`, {
-      listing_violation_id: listingViolationId,
-    });
+    return await withApiError('Failed to suppress violation', () =>
+      this.client.post(`${this.basePath}/suppress_violation`, {
+        listing_violation_id: listingViolationId,
+      })
+    );
   }
 
   /**

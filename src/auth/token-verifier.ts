@@ -3,8 +3,9 @@
  * and JWT validation
  */
 
-import axios from 'axios';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { getErrorMessage } from '@/utils/errors.js';
+import { describeHttpError, httpRequest, isHttpError } from '@/utils/http.js';
 import type {
   VerifiedToken,
   TokenIntrospectionRequest,
@@ -65,12 +66,12 @@ export class TokenVerifier {
   async initialize(): Promise<void> {
     if (typeof this.config.authServerMetadata === 'string') {
       try {
-        const response = await axios.get<OAuthServerMetadata>(this.config.authServerMetadata);
+        const response = await httpRequest<OAuthServerMetadata>({
+          url: this.config.authServerMetadata,
+        });
         this.metadata = response.data;
       } catch (error) {
-        throw new Error(
-          `Failed to load OAuth server metadata: ${error instanceof Error ? error.message : 'Unknown error'}`
-        );
+        throw new Error(`Failed to load OAuth server metadata: ${getErrorMessage(error)}`);
       }
     } else {
       this.metadata = this.config.authServerMetadata;
@@ -131,7 +132,10 @@ export class TokenVerifier {
 
     // Make introspection request
     try {
-      const response = await axios.post<TokenIntrospectionResponse>(introspectionEndpoint, params, {
+      const response = await httpRequest<TokenIntrospectionResponse>({
+        method: 'POST',
+        url: introspectionEndpoint,
+        body: params,
         headers,
       });
 
@@ -171,10 +175,8 @@ export class TokenVerifier {
         subject: data.sub,
       };
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        throw new Error(
-          `Token introspection failed: ${error.response?.data?.error_description || error.message}`
-        );
+      if (isHttpError(error)) {
+        throw new Error(`Token introspection failed: ${describeHttpError(error)}`);
       }
       throw error;
     }
@@ -238,9 +240,7 @@ export class TokenVerifier {
         subject: payload.sub,
       };
     } catch (error) {
-      throw new Error(
-        `JWT verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+      throw new Error(`JWT verification failed: ${getErrorMessage(error)}`);
     }
   }
 

@@ -2,7 +2,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   getEbayConfig,
   getBaseUrl,
+  getIdentityBaseUrl,
   getAuthUrl,
+  getProxyAuthConfig,
   validateEnvironmentConfig,
 } from '@/config/environment.js';
 
@@ -123,6 +125,22 @@ describe('Environment Configuration', () => {
       expect(config.marketplaceId).toBe('EBAY_DE');
       expect(config.contentLanguage).toBe('de-DE');
     });
+
+    it('should populate proxy fields and not nag about missing credentials in proxy auth mode', () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      delete process.env.EBAY_CLIENT_ID;
+      delete process.env.EBAY_CLIENT_SECRET;
+      process.env.EBAY_MCP_DISABLE_AUTH_HEADER = 'true';
+      process.env.EBAY_MCP_API_BASE_URL = 'http://localhost:8080';
+
+      const config = getEbayConfig();
+
+      expect(config.disableAuthHeader).toBe(true);
+      expect(config.apiBaseUrl).toBe('http://localhost:8080');
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+
+      consoleErrorSpy.mockRestore();
+    });
   });
 
   describe('getBaseUrl', () => {
@@ -221,6 +239,121 @@ describe('Environment Configuration', () => {
 
       expect(result.isValid).toBe(true);
       expect(result.warnings.some((w) => w.includes('EBAY_REDIRECT_URI'))).toBe(true);
+    });
+
+    it('should not require client credentials in proxy auth mode', () => {
+      delete process.env.EBAY_CLIENT_ID;
+      delete process.env.EBAY_CLIENT_SECRET;
+      process.env.EBAY_ENVIRONMENT = 'production';
+      process.env.EBAY_MCP_DISABLE_AUTH_HEADER = 'true';
+      process.env.EBAY_MCP_API_BASE_URL = 'http://localhost:8080';
+
+      const result = validateEnvironmentConfig();
+
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+      expect(result.infos.some((i) => i.includes('Proxy auth mode'))).toBe(true);
+    });
+
+    it('should report an unparseable base URL as a fatal error', () => {
+      process.env.EBAY_CLIENT_ID = 'test_id';
+      process.env.EBAY_CLIENT_SECRET = 'test_secret';
+      process.env.EBAY_MCP_API_BASE_URL = 'not a url';
+
+      const result = validateEnvironmentConfig();
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors.some((e) => e.includes('EBAY_MCP_API_BASE_URL'))).toBe(true);
+    });
+  });
+
+  describe('getBaseUrl / getIdentityBaseUrl with override', () => {
+    it('returns the override when provided, for either environment', () => {
+      expect(getBaseUrl('production', 'http://localhost:8080')).toBe('http://localhost:8080');
+      expect(getBaseUrl('sandbox', 'https://proxy.internal')).toBe('https://proxy.internal');
+      expect(getIdentityBaseUrl('production', 'http://localhost:8080')).toBe('http://localhost:8080');
+    });
+
+    it('falls back to the environment default when the override is absent', () => {
+      expect(getBaseUrl('production')).toBe('https://api.ebay.com');
+      expect(getBaseUrl('sandbox', undefined)).toBe('https://api.sandbox.ebay.com');
+      expect(getIdentityBaseUrl('production')).toBe('https://apiz.ebay.com');
+    });
+  });
+
+  describe('getProxyAuthConfig', () => {
+    beforeEach(() => {
+      delete process.env.EBAY_MCP_DISABLE_AUTH_HEADER;
+      delete process.env.EBAY_MCP_API_BASE_URL;
+    });
+
+    it('defaults to auth enabled, no base URL, and no diagnostics', () => {
+      const proxy = getProxyAuthConfig();
+      expect(proxy.disableAuthHeader).toBe(false);
+      expect(proxy.apiBaseUrl).toBeUndefined();
+      expect(proxy.warnings).toHaveLength(0);
+      expect(proxy.errors).toHaveLength(0);
+      expect(proxy.infos).toHaveLength(0);
+    });
+
+    it('parses the flag and strips a trailing slash from the base URL', () => {
+      process.env.EBAY_MCP_DISABLE_AUTH_HEADER = 'true';
+      process.env.EBAY_MCP_API_BASE_URL = 'http://localhost:8080/';
+
+      const proxy = getProxyAuthConfig();
+
+      expect(proxy.disableAuthHeader).toBe(true);
+      expect(proxy.apiBaseUrl).toBe('http://localhost:8080');
+      expect(proxy.infos.some((i) => i.includes('Proxy auth mode'))).toBe(true);
+    });
+
+    it('treats any value other than "true" as auth enabled', () => {
+      process.env.EBAY_MCP_DISABLE_AUTH_HEADER = 'TRUE';
+      expect(getProxyAuthConfig().disableAuthHeader).toBe(false);
+    });
+
+    it('errors on an unparseable base URL instead of silently ignoring it', () => {
+      process.env.EBAY_MCP_API_BASE_URL = 'not a url';
+
+      const proxy = getProxyAuthConfig();
+
+      expect(proxy.apiBaseUrl).toBeUndefined();
+      expect(proxy.errors.some((e) => e.includes('not a valid URL'))).toBe(true);
+    });
+
+    it('warns when auth is disabled but no base URL is set', () => {
+      process.env.EBAY_MCP_DISABLE_AUTH_HEADER = 'true';
+
+      const proxy = getProxyAuthConfig();
+
+      expect(proxy.warnings.some((w) => w.includes('EBAY_MCP_API_BASE_URL is not set'))).toBe(true);
+    });
+
+    it('warns about cleartext http to a non-loopback host while auth is on', () => {
+      process.env.EBAY_MCP_API_BASE_URL = 'http://proxy.example.com:8080';
+
+      const proxy = getProxyAuthConfig();
+
+      expect(proxy.warnings.some((w) => w.includes('transmitted unencrypted'))).toBe(true);
+    });
+
+    it('does not warn for cleartext http to a loopback host', () => {
+      process.env.EBAY_MCP_API_BASE_URL = 'http://127.0.0.1:8080';
+      expect(getProxyAuthConfig().warnings).toHaveLength(0);
+    });
+
+    it('does not warn for https to a non-loopback host', () => {
+      process.env.EBAY_MCP_API_BASE_URL = 'https://proxy.example.com';
+      expect(getProxyAuthConfig().warnings).toHaveLength(0);
+    });
+
+    it('does not warn about cleartext when auth is also disabled', () => {
+      process.env.EBAY_MCP_DISABLE_AUTH_HEADER = 'true';
+      process.env.EBAY_MCP_API_BASE_URL = 'http://proxy.example.com:8080';
+
+      const proxy = getProxyAuthConfig();
+
+      expect(proxy.warnings.some((w) => w.includes('transmitted unencrypted'))).toBe(false);
     });
   });
 });

@@ -1,6 +1,7 @@
-import axios from 'axios';
 import { XMLBuilder, XMLParser } from 'fast-xml-parser';
 import type { EbayApiClient } from '@/api/client.js';
+import { getBaseUrl } from '@/config/environment.js';
+import { httpRequest } from '@/utils/http.js';
 import { apiLogger } from '@/utils/logger.js';
 import { isRecord } from '@/utils/type-guards.js';
 
@@ -18,8 +19,8 @@ export class TradingApiClient {
 
   constructor(restClient: EbayApiClient) {
     this.restClient = restClient;
-    const env = restClient.getConfig().environment;
-    this.baseUrl = env === 'sandbox' ? 'https://api.sandbox.ebay.com' : 'https://api.ebay.com';
+    const config = restClient.getConfig();
+    this.baseUrl = getBaseUrl(config.environment, config.apiBaseUrl);
 
     this.parser = new XMLParser({
       ignoreAttributes: false,
@@ -64,8 +65,6 @@ export class TradingApiClient {
     callName: string,
     params: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
-    const token = await this.restClient.getOAuthClient().getAccessToken();
-
     const requestTag = `${callName}Request`;
     const responseTag = `${callName}Response`;
 
@@ -79,18 +78,30 @@ export class TradingApiClient {
 
     apiLogger.debug(`Trading API ${callName}`, { xmlBody });
 
-    let response;
+    const headers: Record<string, string> = {
+      'X-EBAY-API-SITEID': SITE_ID,
+      'X-EBAY-API-COMPATIBILITY-LEVEL': COMPAT_LEVEL,
+      'X-EBAY-API-CALL-NAME': callName,
+      'Content-Type': 'text/xml',
+    };
+
+    // Proxy auth mode: omit the IAF token and skip token acquisition — the proxy
+    // injects the credential the Trading API requires.
+    if (!this.restClient.getConfig().disableAuthHeader) {
+      headers['X-EBAY-API-IAF-TOKEN'] = await this.restClient.getOAuthClient().getAccessToken();
+    }
+
+    let responseXml: string;
     try {
-      response = await axios.post(`${this.baseUrl}/ws/api.dll`, xmlBody, {
-        headers: {
-          'X-EBAY-API-SITEID': SITE_ID,
-          'X-EBAY-API-COMPATIBILITY-LEVEL': COMPAT_LEVEL,
-          'X-EBAY-API-CALL-NAME': callName,
-          'X-EBAY-API-IAF-TOKEN': token,
-          'Content-Type': 'text/xml',
-        },
-        timeout: 30000,
+      const response = await httpRequest<string>({
+        method: 'POST',
+        url: `${this.baseUrl}/ws/api.dll`,
+        headers,
+        body: xmlBody,
+        timeoutMs: 30000,
+        responseType: 'text',
       });
+      responseXml = response.data;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown HTTP error';
       throw new Error(`Trading API ${callName} request failed: ${message}`);
@@ -98,7 +109,7 @@ export class TradingApiClient {
 
     let parsed: Record<string, unknown>;
     try {
-      const parsedValue = this.parser.parse(response.data);
+      const parsedValue = this.parser.parse(responseXml);
       if (!isRecord(parsedValue)) {
         throw new Error('Trading API response must be an object');
       }

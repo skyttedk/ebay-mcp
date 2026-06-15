@@ -6,6 +6,7 @@ import type { EbayConfig } from '@/types/ebay.js';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import { LocaleEnum } from '@/types/ebay-enums.js';
 import { getVersion } from '@/utils/version.js';
+import { getErrorMessage } from '@/utils/errors.js';
 
 // Get the current directory for loading scope files and .env
 const __filename = fileURLToPath(import.meta.url);
@@ -126,17 +127,23 @@ export function validateEnvironmentConfig(): {
   isValid: boolean;
   warnings: string[];
   errors: string[];
+  infos: string[];
 } {
-  const warnings: string[] = [];
-  const errors: string[] = [];
+  const proxyAuth = getProxyAuthConfig();
+  const warnings: string[] = [...proxyAuth.warnings];
+  const errors: string[] = [...proxyAuth.errors];
 
-  // Check required environment variables
-  if (!process.env.EBAY_CLIENT_ID) {
-    errors.push('EBAY_CLIENT_ID is not set. OAuth will not work.');
-  }
+  // Client credentials are required only when this server authenticates to eBay
+  // itself. In proxy auth mode (EBAY_MCP_DISABLE_AUTH_HEADER=true) the upstream
+  // proxy supplies authentication, so missing credentials are expected, not errors.
+  if (!proxyAuth.disableAuthHeader) {
+    if (!process.env.EBAY_CLIENT_ID) {
+      errors.push('EBAY_CLIENT_ID is not set. OAuth will not work.');
+    }
 
-  if (!process.env.EBAY_CLIENT_SECRET) {
-    errors.push('EBAY_CLIENT_SECRET is not set. OAuth will not work.');
+    if (!process.env.EBAY_CLIENT_SECRET) {
+      errors.push('EBAY_CLIENT_SECRET is not set. OAuth will not work.');
+    }
   }
 
   // Validate EBAY_ENVIRONMENT
@@ -163,17 +170,13 @@ export function validateEnvironmentConfig(): {
   try {
     getProductionScopes();
   } catch (error) {
-    errors.push(
-      `Failed to load production scopes: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
+    errors.push(`Failed to load production scopes: ${getErrorMessage(error)}`);
   }
 
   try {
     getSandboxScopes();
   } catch (error) {
-    errors.push(
-      `Failed to load sandbox scopes: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
+    errors.push(`Failed to load sandbox scopes: ${getErrorMessage(error)}`);
   }
 
   const isValid = errors.length === 0;
@@ -182,6 +185,7 @@ export function validateEnvironmentConfig(): {
     isValid,
     warnings,
     errors,
+    infos: proxyAuth.infos,
   };
 }
 
@@ -197,9 +201,12 @@ export function getEbayConfig(): EbayConfig {
   const appAccessToken = process.env.EBAY_APP_ACCESS_TOKEN ?? '';
   const marketplaceId = (process.env.EBAY_MARKETPLACE_ID ?? '').trim() || 'EBAY_US';
   const contentLanguage = (process.env.EBAY_CONTENT_LANGUAGE ?? '').trim() || 'en-US';
+  const { apiBaseUrl, disableAuthHeader } = getProxyAuthConfig();
 
-  // Only require client credentials - tokens can be optional (generated from refresh token)
-  if (clientId === '' || clientSecret === '') {
+  // Only require client credentials when this server authenticates to eBay itself.
+  // In proxy auth mode the upstream proxy supplies auth, so absent credentials are
+  // expected and must not nag (tokens can otherwise be generated from a refresh token).
+  if (!disableAuthHeader && (clientId === '' || clientSecret === '')) {
     console.error(
       'Missing required eBay credentials. Please set:\n1) EBAY_CLIENT_ID\n2) EBAY_CLIENT_SECRET\nin your .env file at project root'
     );
@@ -215,21 +222,129 @@ export function getEbayConfig(): EbayConfig {
     accessToken,
     refreshToken,
     appAccessToken,
+    apiBaseUrl,
+    disableAuthHeader,
   };
 }
 
 /**
  * Get the eBay REST API base URL for the configured environment.
+ *
+ * @param overrideBaseUrl - When set (from `EBAY_MCP_API_BASE_URL`), wins over the
+ *   environment default so all traffic is routed through an authenticating proxy.
  */
-export function getBaseUrl(environment: 'production' | 'sandbox'): string {
+export function getBaseUrl(
+  environment: 'production' | 'sandbox',
+  overrideBaseUrl?: string
+): string {
+  if (overrideBaseUrl) {
+    return overrideBaseUrl;
+  }
   return environment === 'production' ? 'https://api.ebay.com' : 'https://api.sandbox.ebay.com';
 }
 
 /**
- * Get base URL for Identity API (uses apiz subdomain)
+ * Get base URL for Identity API (uses apiz subdomain).
+ *
+ * @param overrideBaseUrl - When set (from `EBAY_MCP_API_BASE_URL`), wins over the
+ *   `apiz` default; the proxy is then responsible for routing `apiz`-vs-`api` paths.
  */
-export function getIdentityBaseUrl(environment: 'production' | 'sandbox'): string {
+export function getIdentityBaseUrl(
+  environment: 'production' | 'sandbox',
+  overrideBaseUrl?: string
+): string {
+  if (overrideBaseUrl) {
+    return overrideBaseUrl;
+  }
   return environment === 'production' ? 'https://apiz.ebay.com' : 'https://apiz.sandbox.ebay.com';
+}
+
+/** Hosts treated as loopback when deciding whether a cleartext base URL is safe. */
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]', '0.0.0.0']);
+
+/**
+ * Parsed and validated proxy/runtime auth overrides sourced from the `EBAY_MCP_*`
+ * environment variables. Lets the server run behind an authenticating reverse
+ * proxy: when {@link disableAuthHeader} is set the server attaches no eBay auth and
+ * skips token acquisition, and {@link apiBaseUrl} redirects all outbound eBay
+ * traffic to the proxy origin. `warnings`/`errors`/`infos` are surfaced through
+ * {@link validateEnvironmentConfig} so startup and `npm run diagnose` report
+ * misconfigurations consistently.
+ *
+ * @see https://github.com/YosefHayim/ebay-mcp/issues/122
+ */
+export interface ProxyAuthConfig {
+  /** Normalized base-URL override (trailing slash stripped), or undefined when unset. */
+  apiBaseUrl?: string;
+  /** Whether all eBay auth headers and token acquisition should be skipped. */
+  disableAuthHeader: boolean;
+  /** Non-fatal configuration notices (e.g. cleartext credentials, no-op flag). */
+  warnings: string[];
+  /** Fatal configuration problems (e.g. an unparseable base URL). */
+  errors: string[];
+  /** Informational startup notices (e.g. proxy auth mode active). */
+  infos: string[];
+}
+
+/**
+ * Parse, normalize, and validate the proxy auth overrides from the environment.
+ *
+ * Normalization strips a trailing slash from the base URL so path concatenation
+ * (`${base}${'/sell/...'}`) never yields a double slash. An unparseable URL is a
+ * fatal error (fail loud at the boundary) rather than a silent fallback to
+ * `api.ebay.com`. Two non-fatal warnings guard the footguns: disabling auth without
+ * a base URL (requests would hit real eBay unauthenticated), and pointing the base
+ * URL at a plaintext `http://` non-loopback host while auth is still on (real eBay
+ * tokens would traverse the wire in cleartext).
+ */
+export function getProxyAuthConfig(): ProxyAuthConfig {
+  const disableAuthHeader = process.env.EBAY_MCP_DISABLE_AUTH_HEADER === 'true';
+  const rawBaseUrl = (process.env.EBAY_MCP_API_BASE_URL ?? '').trim();
+  const warnings: string[] = [];
+  const errors: string[] = [];
+  const infos: string[] = [];
+
+  let apiBaseUrl: string | undefined;
+  let parsedBaseUrl: URL | undefined;
+  if (rawBaseUrl) {
+    try {
+      parsedBaseUrl = new URL(rawBaseUrl);
+      apiBaseUrl = rawBaseUrl.replace(/\/+$/, '');
+    } catch {
+      errors.push(
+        `EBAY_MCP_API_BASE_URL is not a valid URL: "${rawBaseUrl}". ` +
+          'Provide an absolute URL such as "http://localhost:8080".'
+      );
+    }
+  }
+
+  if (disableAuthHeader) {
+    infos.push(
+      'Proxy auth mode enabled (EBAY_MCP_DISABLE_AUTH_HEADER=true): eBay credentials are not required; ' +
+        'authentication is delegated to the upstream proxy.'
+    );
+    if (!apiBaseUrl) {
+      warnings.push(
+        'EBAY_MCP_DISABLE_AUTH_HEADER=true but EBAY_MCP_API_BASE_URL is not set. Requests will be sent ' +
+          'to eBay directly without authentication and will fail. Set EBAY_MCP_API_BASE_URL to your proxy.'
+      );
+    }
+  }
+
+  if (
+    parsedBaseUrl &&
+    !disableAuthHeader &&
+    parsedBaseUrl.protocol === 'http:' &&
+    !LOOPBACK_HOSTS.has(parsedBaseUrl.hostname)
+  ) {
+    warnings.push(
+      `EBAY_MCP_API_BASE_URL points at a plaintext http:// host (${parsedBaseUrl.host}) while authentication ` +
+        'is enabled. eBay access tokens will be transmitted unencrypted. Use https://, a loopback address, ' +
+        'or set EBAY_MCP_DISABLE_AUTH_HEADER=true.'
+    );
+  }
+
+  return { apiBaseUrl, disableAuthHeader, warnings, errors, infos };
 }
 
 /**

@@ -1,4 +1,5 @@
 import type { EbayApiClient } from '@/api/client.js';
+import { withApiError } from '@/api/shared/request.js';
 import type { DeveloperAnalyticsComponents as AnalyticsComponents } from '@/types/application-settings/developerAnalyticsV1BetaOas3.js';
 import type { DeveloperClientRegistrationComponents as ClientComponents } from '@/types/application-settings/developerClientRegistrationV1Oas3.js';
 import type { DeveloperKeyManagementComponents as KeyComponents } from '@/types/application-settings/developerKeyManagementV1Oas3.js';
@@ -37,9 +38,11 @@ export class DeveloperApi {
     if (apiContext) params.api_context = apiContext;
     if (apiName) params.api_name = apiName;
 
-    return await this.client.get<RateLimitsResponse>(
-      `${this.analyticsBasePath}/rate_limit/`,
-      Object.keys(params).length > 0 ? params : undefined
+    return await withApiError('Failed to get rate limits', () =>
+      this.client.get<RateLimitsResponse>(
+        `${this.analyticsBasePath}/rate_limit/`,
+        Object.keys(params).length > 0 ? params : undefined
+      )
     );
   }
 
@@ -52,9 +55,11 @@ export class DeveloperApi {
     if (apiContext) params.api_context = apiContext;
     if (apiName) params.api_name = apiName;
 
-    return await this.client.get<RateLimitsResponse>(
-      `${this.analyticsBasePath}/user_rate_limit/`,
-      Object.keys(params).length > 0 ? params : undefined
+    return await withApiError('Failed to get user rate limits', () =>
+      this.client.get<RateLimitsResponse>(
+        `${this.analyticsBasePath}/user_rate_limit/`,
+        Object.keys(params).length > 0 ? params : undefined
+      )
     );
   }
 
@@ -68,9 +73,8 @@ export class DeveloperApi {
    * Note: This is primarily for Open Banking / PSD2 compliance
    */
   async registerClient(clientSettings: ClientSettings): Promise<ClientDetails> {
-    return await this.client.post<ClientDetails>(
-      `${this.clientBasePath}/client/register`,
-      clientSettings
+    return await withApiError('Failed to register client', () =>
+      this.client.post<ClientDetails>(`${this.clientBasePath}/client/register`, clientSettings)
     );
   }
 
@@ -83,7 +87,9 @@ export class DeveloperApi {
    * Endpoint: GET /signing_key
    */
   async getSigningKeys(): Promise<QuerySigningKeysResponse> {
-    return await this.client.get<QuerySigningKeysResponse>(`${this.keyBasePath}/signing_key`);
+    return await withApiError('Failed to get signing keys', () =>
+      this.client.get<QuerySigningKeysResponse>(`${this.keyBasePath}/signing_key`)
+    );
   }
 
   /**
@@ -91,7 +97,9 @@ export class DeveloperApi {
    * Endpoint: POST /signing_key
    */
   async createSigningKey(request?: CreateSigningKeyRequest): Promise<SigningKey> {
-    return await this.client.post<SigningKey>(`${this.keyBasePath}/signing_key`, request || {});
+    return await withApiError('Failed to create signing key', () =>
+      this.client.post<SigningKey>(`${this.keyBasePath}/signing_key`, request || {})
+    );
   }
 
   /**
@@ -103,6 +111,8 @@ export class DeveloperApi {
       throw new Error('signingKeyId is required and must be a string');
     }
 
-    return await this.client.get<SigningKey>(`${this.keyBasePath}/signing_key/${signingKeyId}`);
+    return await withApiError('Failed to get signing key', () =>
+      this.client.get<SigningKey>(`${this.keyBasePath}/signing_key/${signingKeyId}`)
+    );
   }
 }

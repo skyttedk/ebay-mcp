@@ -1,4 +1,3 @@
-import axios from 'axios';
 import {
   createAppAccessTokenExpiry,
   createStoredUserTokens,
@@ -16,6 +15,7 @@ import type {
   StoredTokenData,
 } from '@/types/ebay.js';
 import { LocaleEnum } from '@/types/ebay-enums.js';
+import { describeHttpError, httpRequest, isHttpError } from '@/utils/http.js';
 import { authLogger } from '@/utils/logger.js';
 
 /**
@@ -172,7 +172,7 @@ export class EbayOAuthClient {
       return this.appAccessToken;
     }
 
-    const authUrl = `${getBaseUrl(this.config.environment)}/identity/v1/oauth2/token`;
+    const authUrl = `${getBaseUrl(this.config.environment, this.config.apiBaseUrl)}/identity/v1/oauth2/token`;
     const credentials = Buffer.from(`${this.config.clientId}:${this.config.clientSecret}`).toString(
       'base64'
     );
@@ -182,19 +182,18 @@ export class EbayOAuthClient {
     const scopeParam = 'https://api.ebay.com/oauth/api_scope';
 
     try {
-      const response = await axios.post<EbayAppAccessTokenResponse>(
-        authUrl,
-        new URLSearchParams({
+      const response = await httpRequest<EbayAppAccessTokenResponse>({
+        method: 'POST',
+        url: authUrl,
+        body: new URLSearchParams({
           grant_type: 'client_credentials',
           scope: scopeParam,
-        }).toString(),
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            Authorization: `Basic ${credentials}`,
-          },
-        }
-      );
+        }),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: `Basic ${credentials}`,
+        },
+      });
 
       this.appAccessToken = response.data.access_token;
       this.appAccessTokenExpiry = createAppAccessTokenExpiry(response.data.expires_in);
@@ -206,10 +205,8 @@ export class EbayOAuthClient {
 
       return this.appAccessToken;
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        throw new Error(
-          `Failed to get app access token: ${error.response?.data?.error_description || error.message}`
-        );
+      if (isHttpError(error)) {
+        throw new Error(`Failed to get app access token: ${describeHttpError(error)}`);
       }
       throw error;
     }
@@ -224,26 +221,25 @@ export class EbayOAuthClient {
       throw new Error('Redirect URI is required for authorization code exchange');
     }
 
-    const tokenUrl = `${getBaseUrl(this.config.environment)}/identity/v1/oauth2/token`;
+    const tokenUrl = `${getBaseUrl(this.config.environment, this.config.apiBaseUrl)}/identity/v1/oauth2/token`;
     const credentials = Buffer.from(`${this.config.clientId}:${this.config.clientSecret}`).toString(
       'base64'
     );
 
     try {
-      const response = await axios.post(
-        tokenUrl,
-        new URLSearchParams({
+      const response = await httpRequest<EbayUserToken>({
+        method: 'POST',
+        url: tokenUrl,
+        body: new URLSearchParams({
           grant_type: 'authorization_code',
           code,
           redirect_uri: this.config.redirectUri,
-        }).toString(),
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            Authorization: `Basic ${credentials}`,
-          },
-        }
-      );
+        }),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: `Basic ${credentials}`,
+        },
+      });
 
       const tokenData: EbayUserToken = response.data;
 
@@ -260,10 +256,8 @@ export class EbayOAuthClient {
 
       return tokenData;
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        throw new Error(
-          `Failed to exchange code for token: ${error.response?.data?.error_description || error.message}`
-        );
+      if (isHttpError(error)) {
+        throw new Error(`Failed to exchange code for token: ${describeHttpError(error)}`);
       }
       throw error;
     }
@@ -279,7 +273,7 @@ export class EbayOAuthClient {
     }
 
     // Use the token endpoint, not the authorization endpoint
-    const authUrl = `${getBaseUrl(this.config.environment)}/identity/v1/oauth2/token`;
+    const authUrl = `${getBaseUrl(this.config.environment, this.config.apiBaseUrl)}/identity/v1/oauth2/token`;
     const credentials = Buffer.from(`${this.config.clientId}:${this.config.clientSecret}`).toString(
       'base64'
     );
@@ -293,14 +287,17 @@ export class EbayOAuthClient {
         refresh_token: this.userTokens.userRefreshToken,
       };
 
-      const response = await axios.post(authUrl, new URLSearchParams(params).toString(), {
+      const response = await httpRequest<EbayUserTokenResponse>({
+        method: 'POST',
+        url: authUrl,
+        body: new URLSearchParams(params),
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           Authorization: `Basic ${credentials}`,
         },
       });
 
-      const tokenData = response.data as EbayUserTokenResponse;
+      const tokenData = response.data;
 
       this.userTokens = createStoredUserTokensFromResponse({
         config: this.config,
@@ -321,10 +318,8 @@ export class EbayOAuthClient {
       // Write updates to .env file
       this.credentialStore.write(envUpdates);
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        throw new Error(
-          `Failed to refresh token: ${error.response?.data?.error_description || error.message}`
-        );
+      if (isHttpError(error)) {
+        throw new Error(`Failed to refresh token: ${describeHttpError(error)}`);
       }
       throw error;
     }

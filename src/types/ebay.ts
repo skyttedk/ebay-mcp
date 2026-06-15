@@ -18,6 +18,24 @@ export interface EbayConfig {
   accessToken?: string;
   refreshToken?: string;
   appAccessToken?: string;
+  /**
+   * Overrides eBay's base host for ALL live API traffic — REST, Identity, Trading,
+   * and the OAuth token endpoint. When set, every outbound eBay request targets this
+   * origin instead of `api.ebay.com` / `apiz.ebay.com`, and the operator's reverse
+   * proxy is responsible for routing the `apiz`-vs-`api` split internally. Sourced
+   * from `EBAY_MCP_API_BASE_URL`; used to front all eBay calls through a proxy.
+   * @see https://github.com/YosefHayim/ebay-mcp/issues/122
+   */
+  apiBaseUrl?: string;
+  /**
+   * When `true`, the client attaches NO eBay authentication of any kind — neither
+   * `Authorization: Bearer` (REST) nor `X-EBAY-API-IAF-TOKEN` (Trading) — and skips
+   * all token acquisition (no app-token mint, no refresh, no 401-retry). Client
+   * credentials become optional; authentication is delegated to an upstream proxy.
+   * Sourced from `EBAY_MCP_DISABLE_AUTH_HEADER`.
+   * @see https://github.com/YosefHayim/ebay-mcp/issues/122
+   */
+  disableAuthHeader?: boolean;
 }
 
 /**

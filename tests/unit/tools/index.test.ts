@@ -273,7 +273,7 @@ describe('Tools Layer', () => {
       };
       vi.mocked(mockApi.inventory.getInventoryItems).mockResolvedValue(mockResponse);
 
-      const result = await executeTool(mockApi, 'search', { limit: 10 });
+      const result = await executeTool(mockApi, 'search', { query: '', limit: 10 });
 
       expect(mockApi.inventory.getInventoryItems).toHaveBeenCalledWith(10, 0);
       expect(result).toHaveProperty('content');
@@ -361,9 +361,8 @@ describe('Tools Layer', () => {
     });
 
     it('should throw error when tokens missing', async () => {
-      await expect(executeTool(mockApi, 'ebay_set_user_tokens', {})).rejects.toThrow(
-        'Both accessToken and refreshToken are required'
-      );
+      // Missing required fields are now rejected by input-schema validation.
+      await expect(executeTool(mockApi, 'ebay_set_user_tokens', {})).rejects.toThrow();
     });
 
     it('should get token status', async () => {
@@ -577,13 +576,12 @@ describe('Tools Layer', () => {
     });
 
     it('should throw error when authorization code is missing', async () => {
-      await expect(executeTool(mockApi, 'ebay_exchange_authorization_code', {})).rejects.toThrow(
-        'Authorization code is required'
-      );
+      // A missing or empty code is now rejected by input-schema validation.
+      await expect(executeTool(mockApi, 'ebay_exchange_authorization_code', {})).rejects.toThrow();
 
       await expect(
         executeTool(mockApi, 'ebay_exchange_authorization_code', { code: '' })
-      ).rejects.toThrow('Authorization code is required');
+      ).rejects.toThrow();
     });
 
     it('should URL-decode authorization code when it contains encoded characters', async () => {
@@ -663,7 +661,7 @@ describe('Tools Layer', () => {
     });
 
     it('should create fulfillment policy', async () => {
-      const mockPolicy = { name: 'Test Policy' };
+      const mockPolicy = { name: 'Test Policy', marketplaceId: 'EBAY_US' };
       const mockResponse = { policyId: 'POL123' };
       vi.mocked(mockApi.account.createFulfillmentPolicy).mockResolvedValue(mockResponse);
 

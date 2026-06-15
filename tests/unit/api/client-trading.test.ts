@@ -23,7 +23,7 @@ describe('TradingApiClient', () => {
     nock.cleanAll();
     nock.disableNetConnect();
     mockRestClient = createMockRestClient('production');
-    client = new TradingApiClient(mockRestClient as unknown as EbayApiClient);
+    client = new TradingApiClient(mockRestClient);
   });
 
   afterEach(() => {
@@ -94,12 +94,49 @@ describe('TradingApiClient', () => {
 
   it('should use sandbox URL for sandbox environment', () => {
     const sandboxClient = new TradingApiClient(
-      createMockRestClient('sandbox') as unknown as EbayApiClient
+      createMockRestClient('sandbox')
     );
     expect(sandboxClient.getTradingBaseUrl()).toBe('https://api.sandbox.ebay.com');
   });
 
   it('should use production URL for production environment', () => {
     expect(client.getTradingBaseUrl()).toBe('https://api.ebay.com');
+  });
+
+  describe('Proxy auth mode (disableAuthHeader)', () => {
+    function createProxyRestClient() {
+      return {
+        getConfig: vi.fn().mockReturnValue({
+          environment: 'production',
+          apiBaseUrl: 'http://localhost:8099',
+          disableAuthHeader: true,
+        }),
+        getOAuthClient: vi.fn(),
+      } as unknown as EbayApiClient & { getOAuthClient: ReturnType<typeof vi.fn> };
+    }
+
+    it('targets the overridden base URL', () => {
+      const proxyClient = new TradingApiClient(createProxyRestClient());
+      expect(proxyClient.getTradingBaseUrl()).toBe('http://localhost:8099');
+    });
+
+    it('omits the IAF token and never acquires a token', async () => {
+      const proxyRest = createProxyRestClient();
+      const proxyClient = new TradingApiClient(proxyRest);
+
+      const scope = nock('http://localhost:8099', { badheaders: ['x-ebay-api-iaf-token'] })
+        .post('/ws/api.dll')
+        .reply(
+          200,
+          `<?xml version="1.0" encoding="utf-8"?>
+          <GetItemResponse xmlns="urn:ebay:apis:eBLBaseComponents"><Ack>Success</Ack></GetItemResponse>`
+        );
+
+      const result = await proxyClient.execute('GetItem', { ItemID: '1' });
+
+      expect(result.Ack).toBe('Success');
+      expect(proxyRest.getOAuthClient).not.toHaveBeenCalled();
+      scope.done();
+    });
   });
 });

@@ -10,6 +10,7 @@ import chalk from 'chalk';
 import { EbayOAuthClient } from '../auth/oauth.js';
 import { getOAuthAuthorizationUrl } from '../config/environment.js';
 import { parseEnvFile } from './env-parser.js';
+import { getErrorMessage } from '@/utils/errors.js';
 import type { EbayConfig } from '../types/ebay.js';
 
 /**
@@ -59,7 +60,7 @@ function validateEnvFile(projectRoot: string): ValidationResult {
       test: '.env File Existence',
       passed: false,
       message: 'Configuration file cannot be read',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: getErrorMessage(error),
     };
   }
 }
@@ -156,7 +157,7 @@ async function validateOAuthInitialization(config: EbayConfig): Promise<Validati
       test: 'OAuth Client Initialization',
       passed: false,
       message: 'Failed to initialize OAuth client',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: getErrorMessage(error),
     };
   }
 }
@@ -196,7 +197,7 @@ function validateOAuthURL(config: EbayConfig): ValidationResult {
       test: 'OAuth URL Generation',
       passed: false,
       message: 'Failed to generate OAuth URL',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: getErrorMessage(error),
     };
   }
 }

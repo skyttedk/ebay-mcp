@@ -130,7 +130,7 @@ describe('credential session', () => {
         EBAY_ENVIRONMENT: 'sandbox',
         EBAY_REDIRECT_URI: 'https://example.test/callback',
         EBAY_USER_REFRESH_TOKEN: 'refresh-token-123456',
-      } as NodeJS.ProcessEnv,
+      },
       tokenInfo: {
         hasAppAccessToken: true,
         hasUserToken: true,

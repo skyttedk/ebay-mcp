@@ -286,236 +286,40 @@ export const marketingHandlers: ToolHandlerMap = {
     );
   },
 
-  ebay_create_negative_keyword: async (api, args) => {
-    return await api.marketing.createNegativeKeyword(
-      args.campaignId as string,
-      args.negativeKeyword as Record<string, unknown>
+  ebay_get_negative_keywords: async (api, args) => {
+    return await api.marketing.getNegativeKeywords(
+      args.campaignIds as string,
+      args.adGroupIds as string,
+      args.negativeKeywordStatus as string,
+      args.limit as number,
+      args.offset as number
     );
   },
 
   ebay_get_negative_keyword: async (api, args) => {
-    return await api.marketing.getNegativeKeyword(
-      args.campaignId as string,
-      args.negativeKeywordId as string
-    );
+    return await api.marketing.getNegativeKeyword(args.negativeKeywordId as string);
   },
 
-  ebay_get_negative_keywords: async (api, args) => {
-    return await api.marketing.getNegativeKeywords(
-      args.campaignId as string,
-      args.limit as number,
-      args.offset as number
-    );
-  },
-
-  ebay_delete_negative_keyword: async (api, args) => {
-    return await api.marketing.deleteNegativeKeyword(
-      args.campaignId as string,
-      args.negativeKeywordId as string
-    );
+  ebay_create_negative_keyword: async (api, args) => {
+    return await api.marketing.createNegativeKeyword(args);
   },
 
   ebay_update_negative_keyword: async (api, args) => {
-    return await api.marketing.updateNegativeKeyword(
-      args.campaignId as string,
-      args.negativeKeywordId as string,
-      args.negativeKeyword as Record<string, unknown>
-    );
+    return await api.marketing.updateNegativeKeyword(args.negativeKeywordId as string, {
+      negativeKeywordStatus: args.negativeKeywordStatus as string,
+    });
   },
 
   ebay_bulk_create_negative_keywords: async (api, args) => {
-    return await api.marketing.bulkCreateNegativeKeywords(
-      args.campaignId as string,
-      args.negativeKeywords as Record<string, unknown>
-    );
+    return await api.marketing.bulkCreateNegativeKeywords({
+      requests: args.requests as Record<string, unknown>[],
+    });
   },
 
   ebay_bulk_update_negative_keywords: async (api, args) => {
-    return await api.marketing.bulkUpdateNegativeKeywords(
-      args.campaignId as string,
-      args.negativeKeywords as Record<string, unknown>
-    );
-  },
-
-  ebay_bulk_delete_negative_keywords: async (api, args) => {
-    return await api.marketing.bulkDeleteNegativeKeywords(
-      args.campaignId as string,
-      args.negativeKeywords as Record<string, unknown>
-    );
-  },
-
-  ebay_create_negative_keyword_for_ad_group: async (api, args) => {
-    return await api.marketing.createNegativeKeywordForAdGroup(
-      args.adGroupId as string,
-      args.negativeKeyword as Record<string, unknown>
-    );
-  },
-
-  ebay_get_negative_keyword_for_ad_group: async (api, args) => {
-    return await api.marketing.getNegativeKeywordForAdGroup(
-      args.adGroupId as string,
-      args.negativeKeywordId as string
-    );
-  },
-
-  ebay_get_negative_keywords_for_ad_group: async (api, args) => {
-    return await api.marketing.getNegativeKeywordsForAdGroup(
-      args.adGroupId as string,
-      args.limit as number,
-      args.offset as number
-    );
-  },
-
-  ebay_delete_negative_keyword_for_ad_group: async (api, args) => {
-    return await api.marketing.deleteNegativeKeywordForAdGroup(
-      args.adGroupId as string,
-      args.negativeKeywordId as string
-    );
-  },
-
-  ebay_update_negative_keyword_for_ad_group: async (api, args) => {
-    return await api.marketing.updateNegativeKeywordForAdGroup(
-      args.adGroupId as string,
-      args.negativeKeywordId as string,
-      args.negativeKeyword as Record<string, unknown>
-    );
-  },
-
-  ebay_bulk_create_negative_keywords_for_ad_group: async (api, args) => {
-    return await api.marketing.bulkCreateNegativeKeywordsForAdGroup(
-      args.adGroupId as string,
-      args.negativeKeywords as Record<string, unknown>
-    );
-  },
-
-  ebay_bulk_update_negative_keywords_for_ad_group: async (api, args) => {
-    return await api.marketing.bulkUpdateNegativeKeywordsForAdGroup(
-      args.adGroupId as string,
-      args.negativeKeywords as Record<string, unknown>
-    );
-  },
-
-  ebay_bulk_delete_negative_keywords_for_ad_group: async (api, args) => {
-    return await api.marketing.bulkDeleteNegativeKeywordsForAdGroup(
-      args.adGroupId as string,
-      args.negativeKeywords as Record<string, unknown>
-    );
-  },
-
-  ebay_create_campaign_negative_keyword: async (api, args) => {
-    return await api.marketing.createNegativeKeyword(
-      args.campaignId as string,
-      args.negativeKeyword as Record<string, unknown>
-    );
-  },
-
-  ebay_get_campaign_negative_keyword: async (api, args) => {
-    return await api.marketing.getNegativeKeyword(
-      args.campaignId as string,
-      args.negativeKeywordId as string
-    );
-  },
-
-  ebay_get_campaign_negative_keywords: async (api, args) => {
-    return await api.marketing.getNegativeKeywords(
-      args.campaignId as string,
-      args.limit as number,
-      args.offset as number
-    );
-  },
-
-  ebay_delete_campaign_negative_keyword: async (api, args) => {
-    return await api.marketing.deleteNegativeKeyword(
-      args.campaignId as string,
-      args.negativeKeywordId as string
-    );
-  },
-
-  ebay_update_campaign_negative_keyword: async (api, args) => {
-    return await api.marketing.updateNegativeKeyword(
-      args.campaignId as string,
-      args.negativeKeywordId as string,
-      args.updateData as Record<string, unknown>
-    );
-  },
-
-  ebay_bulk_create_campaign_negative_keywords: async (api, args) => {
-    return await api.marketing.bulkCreateNegativeKeywords(
-      args.campaignId as string,
-      args.negativeKeywords as Record<string, unknown>
-    );
-  },
-
-  ebay_bulk_update_campaign_negative_keywords: async (api, args) => {
-    return await api.marketing.bulkUpdateNegativeKeywords(
-      args.campaignId as string,
-      args.negativeKeywords as Record<string, unknown>
-    );
-  },
-
-  ebay_bulk_delete_campaign_negative_keywords: async (api, args) => {
-    return await api.marketing.bulkDeleteNegativeKeywords(
-      args.campaignId as string,
-      args.negativeKeywords as Record<string, unknown>
-    );
-  },
-
-  ebay_create_ad_group_negative_keyword: async (api, args) => {
-    return await api.marketing.createNegativeKeywordForAdGroup(
-      args.adGroupId as string,
-      args.negativeKeyword as Record<string, unknown>
-    );
-  },
-
-  ebay_get_ad_group_negative_keyword: async (api, args) => {
-    return await api.marketing.getNegativeKeywordForAdGroup(
-      args.adGroupId as string,
-      args.negativeKeywordId as string
-    );
-  },
-
-  ebay_get_ad_group_negative_keywords: async (api, args) => {
-    return await api.marketing.getNegativeKeywordsForAdGroup(
-      args.adGroupId as string,
-      args.limit as number,
-      args.offset as number
-    );
-  },
-
-  ebay_delete_ad_group_negative_keyword: async (api, args) => {
-    return await api.marketing.deleteNegativeKeywordForAdGroup(
-      args.adGroupId as string,
-      args.negativeKeywordId as string
-    );
-  },
-
-  ebay_update_ad_group_negative_keyword: async (api, args) => {
-    return await api.marketing.updateNegativeKeywordForAdGroup(
-      args.adGroupId as string,
-      args.negativeKeywordId as string,
-      args.updateData as Record<string, unknown>
-    );
-  },
-
-  ebay_bulk_create_ad_group_negative_keywords: async (api, args) => {
-    return await api.marketing.bulkCreateNegativeKeywordsForAdGroup(
-      args.adGroupId as string,
-      args.negativeKeywords as Record<string, unknown>
-    );
-  },
-
-  ebay_bulk_update_ad_group_negative_keywords: async (api, args) => {
-    return await api.marketing.bulkUpdateNegativeKeywordsForAdGroup(
-      args.adGroupId as string,
-      args.negativeKeywords as Record<string, unknown>
-    );
-  },
-
-  ebay_bulk_delete_ad_group_negative_keywords: async (api, args) => {
-    return await api.marketing.bulkDeleteNegativeKeywordsForAdGroup(
-      args.adGroupId as string,
-      args.negativeKeywords as Record<string, unknown>
-    );
+    return await api.marketing.bulkUpdateNegativeKeywords({
+      requests: args.requests as Record<string, unknown>[],
+    });
   },
 
   ebay_create_targeting: async (api, args) => {
@@ -589,7 +393,13 @@ export const marketingHandlers: ToolHandlerMap = {
   },
 
   ebay_get_promotions: async (api, args) => {
-    return await api.marketing.getPromotions(args.marketplaceId as string, args.limit as number);
+    return await api.marketing.getPromotions(
+      args.marketplaceId as string,
+      args.limit as number,
+      args.offset as number,
+      args.promotionStatus as string,
+      args.promotionType as string
+    );
   },
 
   ebay_get_item_promotion: async (api, args) => {

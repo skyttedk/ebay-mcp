@@ -342,4 +342,56 @@ describe('EbayApiClient Unit Tests', () => {
       expect(oauthClient).toBeDefined();
     });
   });
+
+  describe('Proxy auth mode (disableAuthHeader)', () => {
+    function createProxyClient(environment: 'production' | 'sandbox' = 'sandbox') {
+      return new EbayApiClient({
+        clientId: '',
+        clientSecret: '',
+        environment,
+        apiBaseUrl: 'http://localhost:8099',
+        disableAuthHeader: true,
+      });
+    }
+
+    it('omits the Authorization header and acquires no token', async () => {
+      const proxyClient = createProxyClient();
+      await proxyClient.initialize();
+
+      const scope = nock('http://localhost:8099', { badheaders: ['authorization'] })
+        .get('/sell/inventory/v1/test')
+        .reply(200, { ok: true });
+
+      const result = await proxyClient.get('/sell/inventory/v1/test');
+
+      expect(result).toEqual({ ok: true });
+      expect(mockOAuthClient.getAccessToken).not.toHaveBeenCalled();
+      scope.done();
+    });
+
+    it('routes requests to the overridden base URL', async () => {
+      const proxyClient = createProxyClient('production');
+      await proxyClient.initialize();
+
+      nock('http://localhost:8099').get('/sell/account/v1/test').reply(200, { routed: true });
+
+      const result = await proxyClient.get('/sell/account/v1/test');
+      expect(result).toEqual({ routed: true });
+    });
+
+    it('surfaces a 401 without attempting a token refresh', async () => {
+      const apiErrorSpy = vi.spyOn(apiLogger, 'error').mockImplementation(() => {});
+      const proxyClient = createProxyClient();
+      await proxyClient.initialize();
+
+      nock('http://localhost:8099')
+        .get('/sell/inventory/v1/test')
+        .reply(401, { errors: [{ message: 'Unauthorized by proxy' }] });
+
+      await expect(proxyClient.get('/sell/inventory/v1/test')).rejects.toThrow(/eBay API Error/);
+      expect(mockOAuthClient.getAccessToken).not.toHaveBeenCalled();
+
+      apiErrorSpy.mockRestore();
+    });
+  });
 });

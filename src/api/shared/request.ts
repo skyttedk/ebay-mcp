@@ -1,16 +1,10 @@
 import type { EbayApiClient } from '../client.js';
+import { getErrorMessage } from '@/utils/errors.js';
 
 /**
  * Query-string values accepted by the eBay REST client helpers.
  */
 export type QueryParams = Record<string, string | number>;
-
-/**
- * Normalize thrown values into a stable message for API error wrapping.
- */
-export function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Unknown error';
-}
 
 /**
  * Run an API operation and prefix failures with endpoint-specific context.

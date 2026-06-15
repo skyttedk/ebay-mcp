@@ -3,6 +3,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { validateEnvironmentConfig } from '@/config/environment.js';
 import { createEbayMcpRuntime, type EbayMcpRuntime } from '@/mcp/runtime.js';
 import { runSetup } from '@/scripts/setup.js';
+import { getErrorMessage } from '@/utils/errors.js';
 import { serverLogger, getLogPaths } from '@/utils/logger.js';
 import { checkForUpdates } from '@/utils/version.js';
 
@@ -52,6 +53,11 @@ class EbayMcpServer {
     // Validate environment configuration
     const validation = validateEnvironmentConfig();
 
+    // Log informational notices (e.g. proxy auth mode)
+    validation.infos.forEach((info) => {
+      serverLogger.info(info);
+    });
+
     // Log warnings
     if (validation.warnings.length > 0) {
       validation.warnings.forEach((warning) => {
@@ -92,7 +98,7 @@ class EbayMcpServer {
 const server = new EbayMcpServer();
 server.run().catch((error) => {
   serverLogger.error('Fatal error running server', {
-    error: error instanceof Error ? error.message : String(error),
+    error: getErrorMessage(error, String(error)),
     stack: error instanceof Error ? error.stack : undefined,
   });
   process.exit(1);

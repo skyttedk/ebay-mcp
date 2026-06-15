@@ -1019,7 +1019,7 @@ describe('MarketingApi', () => {
   });
 
   describe('Negative Keyword Management', () => {
-    it('should get negative keywords for a campaign', async () => {
+    it('should get negative keywords with no filters', async () => {
       const mockResponse: NegativeKeywordPagedCollection = {
         total: 3,
         negativeKeywords: [
@@ -1033,31 +1033,46 @@ describe('MarketingApi', () => {
 
       vi.spyOn(mockClient, 'get').mockResolvedValue(mockResponse);
 
-      const result = await marketingApi.getNegativeKeywords('campaign-001');
+      const result = await marketingApi.getNegativeKeywords();
 
-      expect(mockClient.get).toHaveBeenCalledWith(
-        '/sell/marketing/v1/ad_campaign/campaign-001/negative_keyword',
-        {}
-      );
+      expect(mockClient.get).toHaveBeenCalledWith('/sell/marketing/v1/negative_keyword', {});
       expect(result).toEqual(mockResponse);
     });
 
-    it('should create a negative keyword for a campaign', async () => {
+    it('should get negative keywords filtered by campaign, ad group, and status', async () => {
+      const mockResponse: NegativeKeywordPagedCollection = { total: 0, negativeKeywords: [] };
+
+      vi.spyOn(mockClient, 'get').mockResolvedValue(mockResponse);
+
+      await marketingApi.getNegativeKeywords('campaign-001', 'adgroup-001', 'ACTIVE', 10, 20);
+
+      expect(mockClient.get).toHaveBeenCalledWith('/sell/marketing/v1/negative_keyword', {
+        campaign_ids: 'campaign-001',
+        ad_group_ids: 'adgroup-001',
+        negative_keyword_status: 'ACTIVE',
+        limit: 10,
+        offset: 20,
+      });
+    });
+
+    it('should create a negative keyword', async () => {
       const negKeywordRequest: CreateNegativeKeywordRequest = {
+        campaignId: 'campaign-001',
+        adGroupId: 'adgroup-001',
         negativeKeywordText: 'excluded word',
         negativeKeywordMatchType: 'EXACT',
       };
 
       const mockResponse: BaseResponse = {
-        href: '/sell/marketing/v1/ad_campaign/campaign-001/negative_keyword/neg-002',
+        href: '/sell/marketing/v1/negative_keyword/neg-002',
       };
 
       vi.spyOn(mockClient, 'post').mockResolvedValue(mockResponse);
 
-      const result = await marketingApi.createNegativeKeyword('campaign-001', negKeywordRequest);
+      const result = await marketingApi.createNegativeKeyword(negKeywordRequest);
 
       expect(mockClient.post).toHaveBeenCalledWith(
-        '/sell/marketing/v1/ad_campaign/campaign-001/negative_keyword',
+        '/sell/marketing/v1/negative_keyword',
         negKeywordRequest
       );
       expect(result).toEqual(mockResponse);
@@ -1072,69 +1087,31 @@ describe('MarketingApi', () => {
 
       vi.spyOn(mockClient, 'get').mockResolvedValue(mockNegKeyword);
 
-      const result = await marketingApi.getNegativeKeyword('campaign-001', 'neg-001');
+      const result = await marketingApi.getNegativeKeyword('neg-001');
 
-      expect(mockClient.get).toHaveBeenCalledWith(
-        '/sell/marketing/v1/ad_campaign/campaign-001/negative_keyword/neg-001'
-      );
+      expect(mockClient.get).toHaveBeenCalledWith('/sell/marketing/v1/negative_keyword/neg-001');
       expect(result.negativeKeywordId).toBe('neg-001');
     });
 
-    it('should delete a negative keyword', async () => {
-      vi.spyOn(mockClient, 'delete').mockResolvedValue(undefined);
+    it('should update a negative keyword status', async () => {
+      const updateRequest = { negativeKeywordStatus: 'ARCHIVED' };
 
-      await marketingApi.deleteNegativeKeyword('campaign-001', 'neg-001');
+      vi.spyOn(mockClient, 'put').mockResolvedValue(undefined);
 
-      expect(mockClient.delete).toHaveBeenCalledWith(
-        '/sell/marketing/v1/ad_campaign/campaign-001/negative_keyword/neg-001'
+      await marketingApi.updateNegativeKeyword('neg-001', updateRequest);
+
+      expect(mockClient.put).toHaveBeenCalledWith(
+        '/sell/marketing/v1/negative_keyword/neg-001',
+        updateRequest
       );
     });
 
-    it('should get negative keywords for an ad group', async () => {
-      const mockResponse: NegativeKeywordPagedCollection = {
-        total: 2,
-        negativeKeywords: [],
-      };
-
-      vi.spyOn(mockClient, 'get').mockResolvedValue(mockResponse);
-
-      const result = await marketingApi.getNegativeKeywordsForAdGroup('adgroup-001', 10, 0);
-
-      expect(mockClient.get).toHaveBeenCalledWith(
-        '/sell/marketing/v1/ad_group/adgroup-001/negative_keyword',
-        { limit: 10 }
-      );
-      expect(result).toEqual(mockResponse);
-    });
-
-    it('should create a negative keyword for an ad group', async () => {
-      const negKeywordRequest: CreateNegativeKeywordRequest = {
-        negativeKeywordText: 'excluded word',
-        negativeKeywordMatchType: 'PHRASE',
-      };
-
-      const mockResponse: BaseResponse = {
-        href: '/sell/marketing/v1/ad_group/adgroup-001/negative_keyword/neg-003',
-      };
-
-      vi.spyOn(mockClient, 'post').mockResolvedValue(mockResponse);
-
-      const result = await marketingApi.createNegativeKeywordForAdGroup(
-        'adgroup-001',
-        negKeywordRequest
-      );
-
-      expect(mockClient.post).toHaveBeenCalledWith(
-        '/sell/marketing/v1/ad_group/adgroup-001/negative_keyword',
-        negKeywordRequest
-      );
-      expect(result).toEqual(mockResponse);
-    });
-
-    it('should bulk create negative keywords for a campaign', async () => {
-      const bulkRequest: BulkCreateNegativeKeywordRequest = {
+    it('should bulk create negative keywords', async () => {
+      const bulkRequest = {
         requests: [
           {
+            campaignId: 'campaign-001',
+            adGroupId: 'adgroup-001',
             negativeKeywordText: 'excluded 1',
             negativeKeywordMatchType: 'EXACT',
           },
@@ -1145,7 +1122,7 @@ describe('MarketingApi', () => {
         ],
       };
 
-      const mockResponse: BulkCreateNegativeKeywordResponse = {
+      const mockResponse = {
         responses: [
           { statusCode: 201, negativeKeywordId: 'neg-100' },
           { statusCode: 201, negativeKeywordId: 'neg-101' },
@@ -1154,198 +1131,36 @@ describe('MarketingApi', () => {
 
       vi.spyOn(mockClient, 'post').mockResolvedValue(mockResponse);
 
-      const result = await marketingApi.bulkCreateNegativeKeywords('campaign-001', bulkRequest);
+      const result = await marketingApi.bulkCreateNegativeKeywords(bulkRequest);
 
       expect(mockClient.post).toHaveBeenCalledWith(
-        '/sell/marketing/v1/ad_campaign/campaign-001/bulk_create_negative_keywords',
+        '/sell/marketing/v1/bulk_create_negative_keyword',
         bulkRequest
       );
       expect(result).toEqual(mockResponse);
     });
 
-    it('should bulk delete negative keywords for a campaign', async () => {
-      const bulkRequest: BulkDeleteNegativeKeywordRequest = {
-        requests: [{ negativeKeywordId: 'neg-001' }, { negativeKeywordId: 'neg-002' }],
-      };
-
-      const mockResponse: BulkDeleteNegativeKeywordResponse = {
-        responses: [{ statusCode: 204 }, { statusCode: 204 }],
-      };
-
-      vi.spyOn(mockClient, 'post').mockResolvedValue(mockResponse);
-
-      const result = await marketingApi.bulkDeleteNegativeKeywords('campaign-001', bulkRequest);
-
-      expect(mockClient.post).toHaveBeenCalledWith(
-        '/sell/marketing/v1/ad_campaign/campaign-001/bulk_delete_negative_keywords',
-        bulkRequest
-      );
-      expect(result).toEqual(mockResponse);
-    });
-
-    it('should bulk update negative keywords for a campaign', async () => {
-      const bulkRequest: BulkUpdateNegativeKeywordRequest = {
+    it('should bulk update negative keyword statuses', async () => {
+      const bulkRequest = {
         requests: [
-          {
-            negativeKeywordId: 'neg-001',
-            negativeKeywordStatus: 'ACTIVE',
-          },
-          {
-            negativeKeywordId: 'neg-002',
-            negativeKeywordStatus: 'PAUSED',
-          },
+          { negativeKeywordId: 'neg-001', negativeKeywordStatus: 'ACTIVE' },
+          { negativeKeywordId: 'neg-002', negativeKeywordStatus: 'ARCHIVED' },
         ],
       };
 
-      const mockResponse: BulkUpdateNegativeKeywordResponse = {
+      const mockResponse = {
         responses: [{ statusCode: 200 }, { statusCode: 200 }],
       };
 
       vi.spyOn(mockClient, 'post').mockResolvedValue(mockResponse);
 
-      const result = await marketingApi.bulkUpdateNegativeKeywords('campaign-001', bulkRequest);
+      const result = await marketingApi.bulkUpdateNegativeKeywords(bulkRequest);
 
       expect(mockClient.post).toHaveBeenCalledWith(
-        '/sell/marketing/v1/ad_campaign/campaign-001/bulk_update_negative_keywords',
+        '/sell/marketing/v1/bulk_update_negative_keyword',
         bulkRequest
       );
       expect(result).toEqual(mockResponse);
-    });
-
-    it('should update a negative keyword for a campaign', async () => {
-      const updateRequest = {
-        negativeKeywordStatus: 'PAUSED',
-      };
-
-      vi.spyOn(mockClient, 'put').mockResolvedValue(undefined);
-
-      await marketingApi.updateNegativeKeyword('campaign-001', 'neg-001', updateRequest);
-
-      expect(mockClient.put).toHaveBeenCalledWith(
-        '/sell/marketing/v1/ad_campaign/campaign-001/negative_keyword/neg-001',
-        updateRequest
-      );
-    });
-
-    it('should bulk create negative keywords for an ad group', async () => {
-      const bulkRequest: BulkCreateNegativeKeywordRequest = {
-        requests: [
-          {
-            negativeKeywordText: 'excluded 1',
-            negativeKeywordMatchType: 'EXACT',
-          },
-        ],
-      };
-
-      const mockResponse: BulkCreateNegativeKeywordResponse = {
-        responses: [{ statusCode: 201, negativeKeywordId: 'neg-200' }],
-      };
-
-      vi.spyOn(mockClient, 'post').mockResolvedValue(mockResponse);
-
-      const result = await marketingApi.bulkCreateNegativeKeywordsForAdGroup(
-        'adgroup-001',
-        bulkRequest
-      );
-
-      expect(mockClient.post).toHaveBeenCalledWith(
-        '/sell/marketing/v1/ad_group/adgroup-001/bulk_create_negative_keywords',
-        bulkRequest
-      );
-      expect(result).toEqual(mockResponse);
-    });
-
-    it('should bulk delete negative keywords for an ad group', async () => {
-      const bulkRequest: BulkDeleteNegativeKeywordRequest = {
-        requests: [{ negativeKeywordId: 'neg-001' }],
-      };
-
-      const mockResponse: BulkDeleteNegativeKeywordResponse = {
-        responses: [{ statusCode: 204 }],
-      };
-
-      vi.spyOn(mockClient, 'post').mockResolvedValue(mockResponse);
-
-      const result = await marketingApi.bulkDeleteNegativeKeywordsForAdGroup(
-        'adgroup-001',
-        bulkRequest
-      );
-
-      expect(mockClient.post).toHaveBeenCalledWith(
-        '/sell/marketing/v1/ad_group/adgroup-001/bulk_delete_negative_keywords',
-        bulkRequest
-      );
-      expect(result).toEqual(mockResponse);
-    });
-
-    it('should bulk update negative keywords for an ad group', async () => {
-      const bulkRequest: BulkUpdateNegativeKeywordRequest = {
-        requests: [
-          {
-            negativeKeywordId: 'neg-001',
-            negativeKeywordStatus: 'ACTIVE',
-          },
-        ],
-      };
-
-      const mockResponse: BulkUpdateNegativeKeywordResponse = {
-        responses: [{ statusCode: 200 }],
-      };
-
-      vi.spyOn(mockClient, 'post').mockResolvedValue(mockResponse);
-
-      const result = await marketingApi.bulkUpdateNegativeKeywordsForAdGroup(
-        'adgroup-001',
-        bulkRequest
-      );
-
-      expect(mockClient.post).toHaveBeenCalledWith(
-        '/sell/marketing/v1/ad_group/adgroup-001/bulk_update_negative_keywords',
-        bulkRequest
-      );
-      expect(result).toEqual(mockResponse);
-    });
-
-    it('should get a specific negative keyword for an ad group', async () => {
-      const mockNegKeyword: NegativeKeyword = {
-        negativeKeywordId: 'neg-001',
-        negativeKeywordText: 'excluded keyword',
-        negativeKeywordStatus: 'ACTIVE',
-      };
-
-      vi.spyOn(mockClient, 'get').mockResolvedValue(mockNegKeyword);
-
-      const result = await marketingApi.getNegativeKeywordForAdGroup('adgroup-001', 'neg-001');
-
-      expect(mockClient.get).toHaveBeenCalledWith(
-        '/sell/marketing/v1/ad_group/adgroup-001/negative_keyword/neg-001'
-      );
-      expect(result.negativeKeywordId).toBe('neg-001');
-    });
-
-    it('should delete a negative keyword for an ad group', async () => {
-      vi.spyOn(mockClient, 'delete').mockResolvedValue(undefined);
-
-      await marketingApi.deleteNegativeKeywordForAdGroup('adgroup-001', 'neg-001');
-
-      expect(mockClient.delete).toHaveBeenCalledWith(
-        '/sell/marketing/v1/ad_group/adgroup-001/negative_keyword/neg-001'
-      );
-    });
-
-    it('should update a negative keyword for an ad group', async () => {
-      const updateRequest = {
-        negativeKeywordStatus: 'PAUSED',
-      };
-
-      vi.spyOn(mockClient, 'put').mockResolvedValue(undefined);
-
-      await marketingApi.updateNegativeKeywordForAdGroup('adgroup-001', 'neg-001', updateRequest);
-
-      expect(mockClient.put).toHaveBeenCalledWith(
-        '/sell/marketing/v1/ad_group/adgroup-001/negative_keyword/neg-001',
-        updateRequest
-      );
     });
   });
 
@@ -1382,6 +1197,20 @@ describe('MarketingApi', () => {
       expect(mockClient.get).toHaveBeenCalledWith('/sell/marketing/v1/promotion', {
         marketplace_id: 'EBAY_US',
         limit: 10,
+      });
+    });
+
+    it('should get promotions filtered by status, type, and offset', async () => {
+      vi.spyOn(mockClient, 'get').mockResolvedValue({ total: 0, promotions: [] });
+
+      await marketingApi.getPromotions('EBAY_US', 10, 20, 'RUNNING', 'ORDER_DISCOUNT');
+
+      expect(mockClient.get).toHaveBeenCalledWith('/sell/marketing/v1/promotion', {
+        marketplace_id: 'EBAY_US',
+        limit: 10,
+        offset: 20,
+        promotion_status: 'RUNNING',
+        promotion_type: 'ORDER_DISCOUNT',
       });
     });
 

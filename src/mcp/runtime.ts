@@ -3,6 +3,7 @@ import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import { EbaySellerApi } from '@/api/index.js';
 import { getEbayConfig, mcpConfig } from '@/config/environment.js';
 import { getToolEntries, type ToolEntry } from '@/tools/registry.js';
+import { getErrorMessage } from '@/utils/errors.js';
 import { serverLogger, toolLogger } from '@/utils/logger.js';
 
 type ToolArgs = Record<string, unknown>;
@@ -37,7 +38,7 @@ function formatToolSuccess(result: unknown) {
 }
 
 function formatToolFailure(error: unknown) {
-  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+  const errorMessage = getErrorMessage(error);
 
   return {
     content: [
@@ -78,7 +79,7 @@ function registerTool(
 
         return formatToolSuccess(result);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = getErrorMessage(error);
 
         if (logToolExecution) {
           toolLogger.error(`Tool ${definition.name} failed`, { error: errorMessage });
