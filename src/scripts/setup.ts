@@ -426,9 +426,13 @@ const DEFAULT_CALLBACK_PORT = 3000;
 
 /**
  * Resolve the loopback port for the auto-capture callback server. Reads the
- * `EBAY_OAUTH_CALLBACK_PORT` override (the user must register the matching
- * `http://localhost:<port>/oauth/callback` URL on their RuName) and falls back
- * to {@link DEFAULT_CALLBACK_PORT} for anything non-numeric or out of range.
+ * `EBAY_OAUTH_CALLBACK_PORT` override and falls back to
+ * {@link DEFAULT_CALLBACK_PORT} for anything non-numeric or out of range.
+ *
+ * Note: eBay rejects `http://` and `localhost` for a RuName's auth-accepted URL
+ * (HTTPS is mandatory), so the loopback server must be fronted by an HTTPS
+ * tunnel that forwards to this port — the registered URL is the tunnel's, not
+ * `http://localhost:<port>`.
  */
 function getCallbackPort(): number {
   const raw = process.env.EBAY_OAUTH_CALLBACK_PORT;
@@ -809,14 +813,17 @@ export async function runSetup(): Promise<void> {
             context.showNote(
               'Auto-capture (local callback server)',
               [
-                'One-time setup — in the eBay Developer Portal (https://developer.ebay.com/my/keys),',
-                'set your RuName\'s "Your auth accepted URL" to exactly:',
+                `A loopback server listens at ${callbackUrl} to catch eBay's redirect.`,
+                'eBay does NOT accept http:// or localhost as a RuName auth-accepted URL —',
+                'it requires a public HTTPS URL — so expose this port through an HTTPS tunnel',
+                'and register the tunnel URL (one-time, in the eBay Developer Portal):',
                 '',
-                `  ${callbackUrl}`,
+                `  1. Start an HTTPS tunnel to the port:   ngrok http ${callbackPort}`,
+                '  2. https://developer.ebay.com/my/keys → your RuName → "Your auth accepted URL":',
+                '     set it to   https://<your-tunnel-host>/oauth/callback',
                 '',
-                'eBay requires https for non-local hosts. If it rejects this URL, run an https',
-                `tunnel that forwards to it (e.g. \`ngrok http ${callbackPort}\`) and register the`,
-                'tunnel URL instead. Override the port with EBAY_OAUTH_CALLBACK_PORT.',
+                "The tunnel forwards eBay's redirect here, where the code is captured.",
+                'Override the local port with EBAY_OAUTH_CALLBACK_PORT.',
               ].join('\n')
             );
             const authUrl = getOAuthAuthorizationUrl(
