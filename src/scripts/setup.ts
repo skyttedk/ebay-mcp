@@ -651,10 +651,13 @@ export async function runSetup(): Promise<void> {
         message: 'Set up OAuth for higher API rate limits:',
         description: 'App credentials: 1,000 req/day  •  User OAuth: 10,000–50,000 req/day',
         options: [
-          { value: 'existing', label: '📝 I have a refresh token' },
-          { value: 'auto', label: '🤖 Auto-capture via local callback server (no copy-paste)' },
-          { value: 'manual', label: '🔗 Generate OAuth URL (opens browser, paste code)' },
+          {
+            value: 'manual',
+            label: '🔗 Generate OAuth URL (opens browser, paste code) — recommended',
+          },
           { value: 'code', label: '🔑 Paste authorization code (already have code)' },
+          { value: 'existing', label: '📝 I have a refresh token' },
+          { value: 'auto', label: '🤖 Auto-capture (advanced — needs a public HTTPS tunnel)' },
           { value: 'skip', label: '⏭️  Skip for now (1,000 req/day limit)' },
         ],
       },
@@ -708,10 +711,13 @@ export async function runSetup(): Promise<void> {
         if (hasToken) {
           return [
             { value: 'keep', label: '✓  Keep and verify existing token' },
-            { value: 'existing', label: '📝 Replace with a different refresh token' },
-            { value: 'auto', label: '🤖 Auto-capture via local callback server (no copy-paste)' },
-            { value: 'manual', label: '🔗 Generate OAuth URL (opens browser, paste code)' },
+            {
+              value: 'manual',
+              label: '🔗 Generate OAuth URL (opens browser, paste code) — recommended',
+            },
             { value: 'code', label: '🔑 Paste authorization code' },
+            { value: 'existing', label: '📝 Replace with a different refresh token' },
+            { value: 'auto', label: '🤖 Auto-capture (advanced — needs a public HTTPS tunnel)' },
             { value: 'skip', label: '⏭️  Skip for now' },
           ];
         }
