@@ -105,15 +105,15 @@ jobs:
 
       - name: Type check
         if: steps.skip_check.outputs.skip != 'true'
-        run: pnpm run typecheck
+        run: ppnpm typecheck
 
       - name: Run tests
         if: steps.skip_check.outputs.skip != 'true'
-        run: pnpm run test
+        run: ppnpm test
 
       - name: Build
         if: steps.skip_check.outputs.skip != 'true'
-        run: pnpm run build
+        run: ppnpm build
 
       - name: Build release notes from commits
         if: steps.skip_check.outputs.skip != 'true'

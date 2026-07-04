@@ -5,7 +5,7 @@ name: eBay API Sync
 # See docs/adr/current/0004-ci-workflow-architecture.md.
 #
 #   - update-status-doc: regenerate docs/API_STATUS.md and commit any drift.
-#   - sync-check:        run `pnpm run sync` and open an issue listing eBay
+#   - sync-check:        run `ppnpm sync` and open an issue listing eBay
 #                        endpoints not yet exposed as tools.
 
 on:
@@ -87,7 +87,7 @@ jobs:
       - name: Run API sync check
         id: sync
         run: |
-          pnpm run sync 2>&1 | tee sync-output.txt
+          ppnpm sync 2>&1 | tee sync-output.txt
 
           # Extract stats from the report
           if [ -f dev-sync-report.json ]; then
@@ -176,7 +176,7 @@ jobs:
 
             \`\`\`bash
             # Run sync locally to get full details
-            pnpm run sync
+            ppnpm sync
 
             # Check the report
             cat dev-sync-report.json
