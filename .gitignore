@@ -230,3 +230,9 @@ Taskfile.yml
 !/CONTEXT.md
 !/LANGUAGE.md
 !/PROJECT.md
+
+# Kiro CLI agent config (local)
+.kiro
+
+# Kimi Code CLI local config + skills
+.kimi-code/

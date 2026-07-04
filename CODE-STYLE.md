@@ -157,6 +157,12 @@ wizards. A CLI framework (commander) was evaluated and **dropped as unused** (AD
 | `src/tools/categories/account.ts` | A representative tool family (defineTool usage) |
 | `src/index.ts`                  | Bin entry / subcommand routing                   |
 
+## Scripts layout — `scripts/dev/` is gitignored
+
+**Rule:** if you create scripts for local debugging, smoke-testing, or one-off experiments, put them in `scripts/dev/`. This folder is **gitignored** — it never reaches the remote. Production/CI scripts stay at the `scripts/` root.
+
+When creating a new script, ask: _"Would CI or another contributor need this?"_ If **no** → `scripts/dev/`.
+
 ## Never
 
 - **Never** `as any` — narrow, or use a documented boundary cast.
