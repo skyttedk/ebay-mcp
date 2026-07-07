@@ -5,6 +5,7 @@ import {
   DotEnvCredentialStore,
   isTokenExpired,
   type CredentialStore,
+  type CredentialStoreError,
   type EbayUserTokenResponse,
 } from '@/auth/credentialSession.js';
 import { getBaseUrl, getDefaultScopes } from '@/config/environment.js';
@@ -38,6 +39,17 @@ export class EbayOAuthError extends Data.TaggedError('EbayOAuthError')<{
   /** Lower-level transport, parsing, storage, or validation cause. */
   readonly cause?: unknown;
 }> {}
+
+const mapCredentialStoreError = (
+  operation: OAuthOperation,
+  message: string,
+  cause: CredentialStoreError,
+): EbayOAuthError =>
+  new EbayOAuthError({
+    operation,
+    message: `${message}: ${cause.message}`,
+    cause,
+  });
 
 /**
  * Manages eBay OAuth 2.0 authentication
@@ -197,28 +209,25 @@ export class EbayOAuthClient {
     accessTokenExpiry?: number,
     refreshTokenExpiry?: number,
   ): Effect.Effect<void, EbayOAuthError> =>
-    Effect.try({
-      try: () => {
-        this.userTokens = createStoredUserTokens({
-          config: this.config,
-          accessToken,
-          refreshToken,
-          accessTokenExpiry,
-          refreshTokenExpiry,
-        });
+    Effect.gen(this, function* () {
+      this.userTokens = createStoredUserTokens({
+        config: this.config,
+        accessToken,
+        refreshToken,
+        accessTokenExpiry,
+        refreshTokenExpiry,
+      });
 
-        // Update .env file with new tokens
-        this.credentialStore.write({
+      yield* this.credentialStore
+        .write({
           EBAY_USER_ACCESS_TOKEN: accessToken,
           EBAY_USER_REFRESH_TOKEN: refreshToken,
-        });
-      },
-      catch: (cause) =>
-        new EbayOAuthError({
-          operation: 'setUserTokens',
-          message: `Failed to set user tokens: ${getErrorMessage(cause)}`,
-          cause,
-        }),
+        })
+        .pipe(
+          Effect.mapError((cause) =>
+            mapCredentialStoreError('setUserTokens', 'Failed to persist user tokens', cause),
+          ),
+        );
     });
 
   /**
@@ -263,18 +272,19 @@ export class EbayOAuthClient {
       this.appAccessTokenExpiry = createAppAccessTokenExpiry(tokenData.expires_in);
 
       // Update .env file with app access token
-      yield* Effect.try({
-        try: () =>
-          this.credentialStore.write({
-            EBAY_APP_ACCESS_TOKEN: this.appAccessToken ?? '',
-          }),
-        catch: (cause) =>
-          new EbayOAuthError({
-            operation: 'getOrRefreshAppAccessToken',
-            message: `Failed to persist app access token: ${getErrorMessage(cause)}`,
-            cause,
-          }),
-      });
+      yield* this.credentialStore
+        .write({
+          EBAY_APP_ACCESS_TOKEN: this.appAccessToken ?? '',
+        })
+        .pipe(
+          Effect.mapError((cause) =>
+            mapCredentialStoreError(
+              'getOrRefreshAppAccessToken',
+              'Failed to persist app access token',
+              cause,
+            ),
+          ),
+        );
 
       this.config = {
         ...this.config,
@@ -328,19 +338,20 @@ export class EbayOAuthClient {
       });
 
       // Persist tokens to .env so they survive process restarts.
-      yield* Effect.try({
-        try: () =>
-          this.credentialStore.write({
-            EBAY_USER_ACCESS_TOKEN: tokenData.access_token,
-            EBAY_USER_REFRESH_TOKEN: tokenData.refresh_token,
-          }),
-        catch: (cause) =>
-          new EbayOAuthError({
-            operation: 'exchangeCodeForToken',
-            message: `Failed to persist exchanged user tokens: ${getErrorMessage(cause)}`,
-            cause,
-          }),
-      });
+      yield* this.credentialStore
+        .write({
+          EBAY_USER_ACCESS_TOKEN: tokenData.access_token,
+          EBAY_USER_REFRESH_TOKEN: tokenData.refresh_token,
+        })
+        .pipe(
+          Effect.mapError((cause) =>
+            mapCredentialStoreError(
+              'exchangeCodeForToken',
+              'Failed to persist exchanged user tokens',
+              cause,
+            ),
+          ),
+        );
       this.config = {
         ...this.config,
         accessToken: tokenData.access_token,
@@ -410,15 +421,15 @@ export class EbayOAuthClient {
       }
 
       // Write updates to .env file
-      yield* Effect.try({
-        try: () => this.credentialStore.write(envUpdates),
-        catch: (cause) =>
-          new EbayOAuthError({
-            operation: 'refreshUserToken',
-            message: `Failed to persist refreshed user token: ${getErrorMessage(cause)}`,
+      yield* this.credentialStore.write(envUpdates).pipe(
+        Effect.mapError((cause) =>
+          mapCredentialStoreError(
+            'refreshUserToken',
+            'Failed to persist refreshed user token',
             cause,
-          }),
-      });
+          ),
+        ),
+      );
       this.config = {
         ...this.config,
         accessToken: tokenData.access_token,

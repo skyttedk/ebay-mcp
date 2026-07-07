@@ -6,13 +6,58 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { getErrorMessage } from '@/utils/errors.js';
 import { describeHttpError, httpRequestEffect, type HttpRequestOptions } from '@/utils/http.js';
-import { Effect } from 'effect';
+import { Data, Effect } from 'effect';
 import type {
   VerifiedToken,
   TokenIntrospectionRequest,
   TokenIntrospectionResponse,
   OAuthServerMetadata,
 } from './oauthTypes.js';
+
+type TokenVerifierOperation = 'initialize' | 'verifyToken' | 'verifyViaIntrospection' | 'verifyViaJWT';
+
+type TokenVerifierErrorReason =
+  | 'metadataRequest'
+  | 'notInitialized'
+  | 'missingIntrospectionEndpoint'
+  | 'introspectionRequest'
+  | 'inactiveToken'
+  | 'invalidAudience'
+  | 'missingScopes'
+  | 'missingJwksUri'
+  | 'jwtVerification';
+
+/** Tagged failure returned by token verifier Effects. */
+export class TokenVerifierError extends Data.TaggedError('TokenVerifierError')<{
+  /** Verifier operation that failed. */
+  readonly operation: TokenVerifierOperation;
+  /** Stable reason for the verifier failure. */
+  readonly reason: TokenVerifierErrorReason;
+  /** Human-readable failure message safe for the HTTP auth boundary. */
+  readonly message: string;
+  /** Lower-level HTTP, JWT, or parsing cause. */
+  readonly cause?: unknown;
+}> {}
+
+interface TokenVerifierErrorInput {
+  readonly operation: TokenVerifierOperation;
+  readonly reason: TokenVerifierErrorReason;
+  readonly message: string;
+  readonly cause?: unknown;
+}
+
+const tokenVerifierError = ({
+  operation,
+  reason,
+  message,
+  cause,
+}: TokenVerifierErrorInput): TokenVerifierError =>
+  new TokenVerifierError({
+    operation,
+    reason,
+    message,
+    ...(cause === undefined ? {} : { cause }),
+  });
 
 /**
  * OAuth issuer and audience settings used to validate MCP access tokens.
@@ -65,22 +110,33 @@ export class TokenVerifier {
    * Execute an OAuth verifier HTTP request and return its decoded body.
    */
   private requestVerifierData<T>(
+    operation: TokenVerifierOperation,
+    reason: TokenVerifierErrorReason,
     failureMessage: string,
     options: HttpRequestOptions,
-  ): Effect.Effect<T, Error> {
+  ): Effect.Effect<T, TokenVerifierError> {
     return httpRequestEffect<T>(options).pipe(
       Effect.map((response) => response.data),
-      Effect.mapError((error) => new Error(`${failureMessage}: ${describeHttpError(error)}`)),
+      Effect.mapError((cause) =>
+        tokenVerifierError({
+          operation,
+          reason,
+          message: `${failureMessage}: ${describeHttpError(cause)}`,
+          cause,
+        }),
+      ),
     );
   }
 
   /**
    * Initialize the verifier by loading OAuth server metadata
    */
-  initialize = (): Effect.Effect<void, Error> =>
+  initialize = (): Effect.Effect<void, TokenVerifierError> =>
     Effect.gen(this, function* () {
       if (typeof this.config.authServerMetadata === 'string') {
         this.metadata = yield* this.requestVerifierData<OAuthServerMetadata>(
+          'initialize',
+          'metadataRequest',
           'Failed to load OAuth server metadata',
           {
             url: this.config.authServerMetadata,
@@ -94,10 +150,16 @@ export class TokenVerifier {
   /**
    * Verify an access token
    */
-  verifyToken = (token: string): Effect.Effect<VerifiedToken, Error> =>
+  verifyToken = (token: string): Effect.Effect<VerifiedToken, TokenVerifierError> =>
     Effect.gen(this, function* () {
       if (!this.metadata) {
-        return yield* Effect.fail(new Error('Token verifier not initialized'));
+        return yield* Effect.fail(
+          tokenVerifierError({
+            operation: 'verifyToken',
+            reason: 'notInitialized',
+            message: 'Token verifier not initialized',
+          }),
+        );
       }
 
       if (this.config.useIntrospection === false) {
@@ -109,17 +171,29 @@ export class TokenVerifier {
   /**
    * Verify token using OAuth 2.0 Token Introspection (RFC 7662)
    */
-  private verifyViaIntrospection = (token: string): Effect.Effect<VerifiedToken, Error> =>
+  private verifyViaIntrospection = (
+    token: string,
+  ): Effect.Effect<VerifiedToken, TokenVerifierError> =>
     Effect.gen(this, function* () {
       if (!this.metadata) {
-        return yield* Effect.fail(new Error('Token verifier not initialized'));
+        return yield* Effect.fail(
+          tokenVerifierError({
+            operation: 'verifyViaIntrospection',
+            reason: 'notInitialized',
+            message: 'Token verifier not initialized',
+          }),
+        );
       }
 
       // Check if introspection endpoint is available
       const introspectionEndpoint = this.metadata.introspection_endpoint;
       if (!introspectionEndpoint) {
         return yield* Effect.fail(
-          new Error('Introspection endpoint not available in OAuth server metadata'),
+          tokenVerifierError({
+            operation: 'verifyViaIntrospection',
+            reason: 'missingIntrospectionEndpoint',
+            message: 'Introspection endpoint not available in OAuth server metadata',
+          }),
         );
       }
 
@@ -148,6 +222,8 @@ export class TokenVerifier {
 
       // Make introspection request
       const data = yield* this.requestVerifierData<TokenIntrospectionResponse>(
+        'verifyViaIntrospection',
+        'introspectionRequest',
         'Token introspection failed',
         {
           method: 'POST',
@@ -159,15 +235,23 @@ export class TokenVerifier {
 
       // Check if token is active
       if (!data.active) {
-        return yield* Effect.fail(new Error('Token is not active'));
+        return yield* Effect.fail(
+          tokenVerifierError({
+            operation: 'verifyViaIntrospection',
+            reason: 'inactiveToken',
+            message: 'Token is not active',
+          }),
+        );
       }
 
       // Validate audience
       if (!this.validateAudience(data.aud)) {
         return yield* Effect.fail(
-          new Error(
-            `Invalid audience. Expected: ${this.config.expectedAudience}, Got: ${data.aud}`,
-          ),
+          tokenVerifierError({
+            operation: 'verifyViaIntrospection',
+            reason: 'invalidAudience',
+            message: `Invalid audience. Expected: ${this.config.expectedAudience}, Got: ${data.aud}`,
+          }),
         );
       }
 
@@ -179,9 +263,11 @@ export class TokenVerifier {
         );
         if (!hasRequiredScopes) {
           return yield* Effect.fail(
-            new Error(
-              `Missing required scopes. Required: ${this.config.requiredScopes.join(', ')}, Got: ${scopes.join(', ')}`,
-            ),
+            tokenVerifierError({
+              operation: 'verifyViaIntrospection',
+              reason: 'missingScopes',
+              message: `Missing required scopes. Required: ${this.config.requiredScopes.join(', ')}, Got: ${scopes.join(', ')}`,
+            }),
           );
         }
       }
@@ -199,21 +285,39 @@ export class TokenVerifier {
   /**
    * Verify token using JWT validation
    */
-  private verifyViaJWT = (token: string): Effect.Effect<VerifiedToken, Error> =>
+  private verifyViaJWT = (token: string): Effect.Effect<VerifiedToken, TokenVerifierError> =>
     Effect.gen(this, function* () {
       if (!this.metadata) {
-        return yield* Effect.fail(new Error('Token verifier not initialized'));
+        return yield* Effect.fail(
+          tokenVerifierError({
+            operation: 'verifyViaJWT',
+            reason: 'notInitialized',
+            message: 'Token verifier not initialized',
+          }),
+        );
       }
 
       const metadata = this.metadata;
       const jwksUri = metadata.jwks_uri;
       if (!jwksUri) {
-        return yield* Effect.fail(new Error('JWKS URI not available in OAuth server metadata'));
+        return yield* Effect.fail(
+          tokenVerifierError({
+            operation: 'verifyViaJWT',
+            reason: 'missingJwksUri',
+            message: 'JWKS URI not available in OAuth server metadata',
+          }),
+        );
       }
 
       const JWKS = yield* Effect.try({
         try: () => createRemoteJWKSet(new URL(jwksUri)),
-        catch: (error) => new Error(`JWT verification failed: ${getErrorMessage(error)}`),
+        catch: (cause) =>
+          tokenVerifierError({
+            operation: 'verifyViaJWT',
+            reason: 'jwtVerification',
+            message: `JWT verification failed: ${getErrorMessage(cause)}`,
+            cause,
+          }),
       });
       const { payload } = yield* Effect.tryPromise({
         try: () =>
@@ -221,7 +325,13 @@ export class TokenVerifier {
             issuer: metadata.issuer,
             audience: this.config.expectedAudience,
           }),
-        catch: (error) => new Error(`JWT verification failed: ${getErrorMessage(error)}`),
+        catch: (cause) =>
+          tokenVerifierError({
+            operation: 'verifyViaJWT',
+            reason: 'jwtVerification',
+            message: `JWT verification failed: ${getErrorMessage(cause)}`,
+            cause,
+          }),
       });
       let scopes: string[] = [];
       if (typeof payload.scope === 'string') {
@@ -236,9 +346,11 @@ export class TokenVerifier {
         );
         if (!hasRequiredScopes) {
           return yield* Effect.fail(
-            new Error(
-              `Missing required scopes. Required: ${this.config.requiredScopes.join(', ')}, Got: ${scopes.join(', ')}`,
-            ),
+            tokenVerifierError({
+              operation: 'verifyViaJWT',
+              reason: 'missingScopes',
+              message: `Missing required scopes. Required: ${this.config.requiredScopes.join(', ')}, Got: ${scopes.join(', ')}`,
+            }),
           );
         }
       }

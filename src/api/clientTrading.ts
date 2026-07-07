@@ -7,7 +7,7 @@ import { getErrorMessage } from '@/utils/errors.js';
 import { httpRequestEffect } from '@/utils/http.js';
 import { apiLogger } from '@/utils/logger.js';
 import { isRecord } from '@/utils/typeGuards.js';
-import { Effect } from 'effect';
+import { Data, Effect } from 'effect';
 
 const COMPAT_LEVEL = '1451';
 const SITE_ID = '0';
@@ -46,6 +46,18 @@ interface TradingParseContext extends TradingFailureContext {
   readonly responseText: string;
 }
 
+/** Tagged cause attached to {@link EbayApiError} for Trading XML failures. */
+class TradingApiFailure extends Data.TaggedError('TradingApiFailure')<{
+  /** Trading API call name, such as GetItem. */
+  readonly callName: string;
+  /** Absolute Trading API request URL. */
+  readonly path: string;
+  /** Human-readable Trading API failure message. */
+  readonly message: string;
+  /** Lower-level parser, HTTP, or response payload cause. */
+  readonly cause?: unknown;
+}> {}
+
 const buildTradingPath = (baseUrl: string): string => `${baseUrl}${TRADING_ENDPOINT_PATH}`;
 
 const buildTradingHeaders = (callName: string): Record<string, string> => ({
@@ -73,11 +85,17 @@ const buildTradingXmlBody = (
 const createTradingApiError = (
   { callName, path }: TradingFailureContext,
   message: string,
+  cause?: unknown,
 ): EbayApiError =>
   new EbayApiError({
     method: 'POST',
     path,
-    cause: new Error(`Trading API ${callName} ${message}`),
+    cause: new TradingApiFailure({
+      callName,
+      path,
+      message: `Trading API ${callName} ${message}`,
+      ...(cause === undefined ? {} : { cause }),
+    }),
   });
 
 const authorizeTradingHeaders = ({
@@ -135,9 +153,12 @@ const parseTradingXml = ({
       new EbayApiError({
         method: 'POST',
         path,
-        cause: new Error(
-          `Failed to parse Trading API ${callName} response: ${getErrorMessage(error)}`,
-        ),
+        cause: new TradingApiFailure({
+          callName,
+          path,
+          message: `Failed to parse Trading API ${callName} response: ${getErrorMessage(error)}`,
+          cause: error,
+        }),
       }),
   }).pipe(
     Effect.flatMap((parsedValue) => {
@@ -200,7 +221,12 @@ const validateTradingAck = (
       new EbayApiError({
         method: 'POST',
         path,
-        cause: new Error(extractTradingErrorMessage(result.Errors)),
+        cause: new TradingApiFailure({
+          callName,
+          path,
+          message: extractTradingErrorMessage(result.Errors),
+          cause: result.Errors,
+        }),
       }),
     );
   }

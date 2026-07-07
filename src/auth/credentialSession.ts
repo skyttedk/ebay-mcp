@@ -3,7 +3,7 @@ import stringify from 'dotenv-stringify';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import type { EbayConfig, EbayUserToken, StoredTokenData } from '@/types/ebay.js';
-import { Effect } from 'effect';
+import { Data, Effect } from 'effect';
 import process from 'node:process';
 
 /**
@@ -27,12 +27,32 @@ export const APP_ACCESS_TOKEN_EXPIRY_BUFFER_SECONDS = 60;
 export type EbayUserTokenResponse = Pick<EbayUserToken, 'access_token' | 'expires_in'> &
   Partial<Omit<EbayUserToken, 'access_token' | 'expires_in'>>;
 
+/** Tagged failure returned when credential persistence cannot write to disk. */
+export class CredentialStoreError extends Data.TaggedError('CredentialStoreError')<{
+  /** Path of the credential backing file that failed to update. */
+  readonly envPath: string;
+  /** Human-readable persistence failure message. */
+  readonly message: string;
+  /** Lower-level filesystem or serialization failure. */
+  readonly cause: unknown;
+}> {}
+
 /**
  * Persistence boundary for writing refreshed credential values.
  */
 export interface CredentialStore {
-  /** Writes credential updates to the backing store. */
-  write(updates: Record<string, string>): void;
+  /**
+   * Writes credential updates to the backing store.
+   *
+   * @param updates - Environment variable names and values to merge into storage.
+   * @returns An Effect that succeeds after the backing store is updated.
+   *
+   * @example
+   * ```ts
+   * yield* credentialStore.write({ EBAY_USER_REFRESH_TOKEN: refreshToken });
+   * ```
+   */
+  write(updates: Record<string, string>): Effect.Effect<void, CredentialStoreError>;
 }
 
 /**
@@ -41,21 +61,34 @@ export interface CredentialStore {
 export class DotEnvCredentialStore implements CredentialStore {
   constructor(private readonly getEnvPath: () => string = () => join(process.cwd(), '.env')) {}
 
-  write(updates: Record<string, string>): void {
-    void Effect.runSync(
-      Effect.try({
-        try: () => {
-          const envPath = this.getEnvPath();
-          const existingEnv = existsSync(envPath)
-            ? dotenv.parse(readFileSync(envPath, 'utf-8'))
-            : {};
-          const safeEnvContent = stringify({ ...existingEnv, ...updates });
+  /**
+   * Merges credential updates into the project `.env` file.
+   *
+   * @param updates - Environment variable names and values to persist.
+   * @returns An Effect that succeeds after `.env` is written.
+   *
+   * @example
+   * ```ts
+   * yield* new DotEnvCredentialStore().write({ EBAY_APP_ACCESS_TOKEN: appToken });
+   * ```
+   */
+  write(updates: Record<string, string>): Effect.Effect<void, CredentialStoreError> {
+    const envPath = this.getEnvPath();
 
-          writeFileSync(envPath, safeEnvContent, 'utf-8');
-        },
-        catch: () => undefined,
-      }).pipe(Effect.catchAll(() => Effect.void)),
-    );
+    return Effect.try({
+      try: () => {
+        const existingEnv = existsSync(envPath) ? dotenv.parse(readFileSync(envPath, 'utf-8')) : {};
+        const safeEnvContent = stringify({ ...existingEnv, ...updates });
+
+        writeFileSync(envPath, safeEnvContent, 'utf-8');
+      },
+      catch: (cause) =>
+        new CredentialStoreError({
+          envPath,
+          message: `Failed to write credential updates to ${envPath}`,
+          cause,
+        }),
+    });
   }
 }
 
