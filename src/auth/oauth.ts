@@ -421,15 +421,17 @@ export class EbayOAuthClient {
       }
 
       // Write updates to .env file
-      yield* this.credentialStore.write(envUpdates).pipe(
-        Effect.mapError((cause) =>
-          mapCredentialStoreError(
-            'refreshUserToken',
-            'Failed to persist refreshed user token',
-            cause,
+      yield* this.credentialStore
+        .write(envUpdates)
+        .pipe(
+          Effect.mapError((cause) =>
+            mapCredentialStoreError(
+              'refreshUserToken',
+              'Failed to persist refreshed user token',
+              cause,
+            ),
           ),
-        ),
-      );
+        );
       this.config = {
         ...this.config,
         accessToken: tokenData.access_token,

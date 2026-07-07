@@ -507,15 +507,17 @@ export const tokenManagementEntries: ToolEntry[] = [
           });
 
           const authClient = api.getAuthClient().getOAuthClient();
-          const tokenData = yield* authClient.exchangeCodeForToken(decodedCode).pipe(
-            Effect.mapError((error) =>
-              tokenToolError(
-                'exchangeAuthorizationCode',
-                'Failed to exchange authorization code',
-                error,
+          const tokenData = yield* authClient
+            .exchangeCodeForToken(decodedCode)
+            .pipe(
+              Effect.mapError((error) =>
+                tokenToolError(
+                  'exchangeAuthorizationCode',
+                  'Failed to exchange authorization code',
+                  error,
+                ),
               ),
-            ),
-          );
+            );
 
           return {
             success: true,

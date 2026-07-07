@@ -14,7 +14,11 @@ import type {
   OAuthServerMetadata,
 } from './oauthTypes.js';
 
-type TokenVerifierOperation = 'initialize' | 'verifyToken' | 'verifyViaIntrospection' | 'verifyViaJWT';
+type TokenVerifierOperation =
+  | 'initialize'
+  | 'verifyToken'
+  | 'verifyViaIntrospection'
+  | 'verifyViaJWT';
 
 type TokenVerifierErrorReason =
   | 'metadataRequest'

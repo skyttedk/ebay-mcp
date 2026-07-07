@@ -152,7 +152,7 @@ export const describeHttpError = (error: unknown, fallback = 'Unknown error'): s
     }
     return error.message || fallback;
   }
-  return error instanceof Error ? error.message : fallback;
+  return getErrorMessage(error, fallback);
 };
 
 /** Coerce a query-param value to a string without producing `[object Object]`. */

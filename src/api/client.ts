@@ -197,7 +197,10 @@ export class EbayApiClient {
   /**
    * Return the credential validation error that would block an authenticated request.
    */
-  private accessTokenValidationError(method: string, url: string): EbayClientRequestError | undefined {
+  private accessTokenValidationError(
+    method: string,
+    url: string,
+  ): EbayClientRequestError | undefined {
     if (!(this.config.clientId && this.config.clientSecret)) {
       return clientRequestError({
         kind: 'missingCredentials',

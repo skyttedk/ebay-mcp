@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { z } from 'zod';
+import type { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import * as marketingSchemas from '@/schemas/marketing/marketing.js';
 import { defineTool } from '@/tools/defineTool.js';

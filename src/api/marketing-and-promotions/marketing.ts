@@ -7,7 +7,7 @@ import {
   requestPostEffect,
   requestPutEffect,
 } from '@/api/shared/request.js';
-import {
+import type {
   bulkCreateAdsByInventoryReferenceInputSchema,
   bulkCreateAdsByListingIdInputSchema,
   bulkDeleteAdsByInventoryReferenceInputSchema,
@@ -92,7 +92,7 @@ import {
   getEmailReportInputSchema,
 } from '@/schemas/marketing/marketing.js';
 import type { operations } from '@/types/sell-apps/markeitng-and-promotions/sellMarketingV1Oas3.js';
-import { Effect } from 'effect';
+import type { Effect } from 'effect';
 import type { z } from 'zod';
 
 const MARKETING_BASE_PATH = '/sell/marketing/v1';

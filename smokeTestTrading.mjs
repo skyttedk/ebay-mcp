@@ -8,49 +8,39 @@ import { config } from 'dotenv';
 config({ quiet: true });
 
 import process from 'node:process';
+import { Effect } from 'effect';
 import { EbayApiClient } from './build/api/client.js';
 import { TradingApiClient } from './build/api/clientTrading.js';
 import { TradingApi } from './build/api/trading/trading.js';
+import { getEbayConfig } from './build/config/environment.js';
 
 const ITEM_ID = '168103939137';
 
-// Build config from env (same as getEbayConfig)
-const ebayConfig = {
-  clientId: process.env.EBAY_CLIENT_ID ?? '',
-  clientSecret: process.env.EBAY_CLIENT_SECRET ?? '',
-  environment: process.env.EBAY_ENVIRONMENT ?? 'production',
-  accessToken: process.env.EBAY_USER_ACCESS_TOKEN ?? '',
-  refreshToken: process.env.EBAY_USER_REFRESH_TOKEN ?? '',
-  appAccessToken: process.env.EBAY_APP_ACCESS_TOKEN ?? '',
-  marketplaceId: process.env.EBAY_MARKETPLACE_ID ?? 'EBAY_US',
-  contentLanguage: process.env.EBAY_CONTENT_LANGUAGE ?? 'en-US',
-};
-
+const ebayConfig = getEbayConfig();
 const restClient = new EbayApiClient(ebayConfig);
-await restClient.initialize();
+await Effect.runPromise(restClient.initialize());
 const tradingClient = new TradingApiClient(restClient);
 const api = new TradingApi(tradingClient);
 
-async function step(name, fn) {
+const step = async (name, effectFactory) => {
   process.stdout.write(`  ${name}... `);
-  const result = await fn();
-  return result;
-}
+  return await Effect.runPromise(effectFactory());
+};
 
 // Step 1: Relist the ended item
-const relistResult = await step('relist_item', () => api.relistItem(ITEM_ID));
+const relistResult = await step('relist_item', () => api.relistItem({ itemId: ITEM_ID }));
 const newItemId = relistResult.ItemID || ITEM_ID;
 
 // Step 2: Get listing to verify it's active
-const listing = await step('get_listing (verify active)', () => api.getListing(String(newItemId)));
-const _status = listing.SellingStatus?.ListingStatus || listing.ListingStatus || 'unknown';
+await step('get_listing (verify active)', () => api.getListing({ itemId: String(newItemId) }));
 
 // Step 3: End the listing
-await step('end_listing', () => api.endListing(String(newItemId), 'NotAvailable'));
+await step('end_listing', () =>
+  api.endListing({ itemId: String(newItemId), reason: 'NotAvailable' }),
+);
 
 // Step 4: Get listing to verify it's ended
-const ended = await step('get_listing (verify ended)', () => api.getListing(String(newItemId)));
-const _endedStatus = ended.SellingStatus?.ListingStatus || ended.ListingStatus || 'unknown';
+await step('get_listing (verify ended)', () => api.getListing({ itemId: String(newItemId) }));
 const testItem = {
   Title: 'TEST LISTING - Leviton 8-Port Switch - WILL BE ENDED IMMEDIATELY',
   PrimaryCategory: { CategoryID: '51268' },
@@ -93,25 +83,24 @@ const testItem = {
   },
 };
 
-const createResult = await step('create_listing', () => api.createListing(testItem));
-const createdItemId = createResult.ItemID;
+const createResult = await step('create_listing', () => api.createListing({ item: testItem }));
+const createdItemId = String(createResult.ItemID);
 
 // Ensure cleanup on unexpected exit
-const cleanup = async () => {
-  try {
-    await api.endListing(String(createdItemId), 'NotAvailable');
-  } catch {}
-  process.exit(1);
+const cleanup = () => {
+  void Effect.runPromise(
+    Effect.ignore(api.endListing({ itemId: createdItemId, reason: 'NotAvailable' })),
+  ).finally(() => process.exit(1));
 };
 process.on('SIGINT', cleanup);
 process.on('SIGTERM', cleanup);
 
 // Step 6: Verify it's live
-const _created = await step('get_listing (verify created)', () =>
-  api.getListing(String(createdItemId)),
-);
+await step('get_listing (verify created)', () => api.getListing({ itemId: createdItemId }));
 await new Promise((resolve) => {
   process.stdin.once('data', resolve);
 });
 process.stdin.destroy();
-await step('end_listing (cleanup)', () => api.endListing(String(createdItemId), 'NotAvailable'));
+await step('end_listing (cleanup)', () =>
+  api.endListing({ itemId: createdItemId, reason: 'NotAvailable' }),
+);

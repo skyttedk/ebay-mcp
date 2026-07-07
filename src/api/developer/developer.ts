@@ -8,7 +8,7 @@ import {
   requireObjectEffect,
   requireStringEffect,
 } from '@/api/shared/request.js';
-import {
+import type {
   createSigningKeyInputSchema,
   getRateLimitsInputSchema,
   getSigningKeyInputSchema,

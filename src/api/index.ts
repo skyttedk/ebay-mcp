@@ -22,7 +22,7 @@ import { TradingApiClient } from '@/api/clientTrading.js';
 import { TradingApi } from '@/api/trading/trading.js';
 import type { EbayOAuthError } from '@/auth/oauth.js';
 import type { EbayConfig } from '@/types/ebay.js';
-import { Effect } from 'effect';
+import type { Effect } from 'effect';
 
 /**
  * Main API facade providing access to all eBay APIs
