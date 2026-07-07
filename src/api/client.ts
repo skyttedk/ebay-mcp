@@ -1,5 +1,6 @@
 import { EbayOAuthClient, type EbayOAuthError } from '@/auth/oauth.js';
 import { clientRequestError, type EbayClientRequestError } from '@/api/clientRequestError.js';
+import { RateLimitTracker } from '@/api/rateLimitTracker.js';
 import { getBaseUrl } from '@/config/environment.js';
 import type { EbayConfig } from '@/types/ebay.js';
 import { getErrorMessage } from '@/utils/errors.js';
@@ -65,40 +66,6 @@ const sleep = (delayMs: number): Effect.Effect<void> =>
         setTimeout(resolve, delayMs);
       }),
   );
-
-/**
- * Rate limit tracking
- */
-class RateLimitTracker {
-  private requestTimestamps: number[] = [];
-  private readonly windowMs = 60_000; // 1 minute window
-  private readonly maxRequests = 5000; // Conservative limit
-
-  canMakeRequest(): boolean {
-    const now = Date.now();
-    // Remove timestamps older than window
-    this.requestTimestamps = this.requestTimestamps.filter(
-      (timestamp) => now - timestamp < this.windowMs,
-    );
-    return this.requestTimestamps.length < this.maxRequests;
-  }
-
-  recordRequest(): void {
-    this.requestTimestamps.push(Date.now());
-  }
-
-  getStats(): { current: number; max: number; windowMs: number } {
-    const now = Date.now();
-    this.requestTimestamps = this.requestTimestamps.filter(
-      (timestamp) => now - timestamp < this.windowMs,
-    );
-    return {
-      current: this.requestTimestamps.length,
-      max: this.maxRequests,
-      windowMs: this.windowMs,
-    };
-  }
-}
 
 /**
  * Base client for making eBay API requests.
