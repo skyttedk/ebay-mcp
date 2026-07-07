@@ -4,9 +4,15 @@
  */
 
 import { createRemoteJWKSet, jwtVerify } from 'jose';
+import {
+  tokenVerifierError,
+  type TokenVerifierError,
+  type TokenVerifierErrorReason,
+  type TokenVerifierOperation,
+} from '@/auth/tokenVerifierError.js';
 import { getErrorMessage } from '@/utils/errors.js';
 import { describeHttpError, httpRequestEffect, type HttpRequestOptions } from '@/utils/http.js';
-import { Data, Effect } from 'effect';
+import { Effect } from 'effect';
 import type {
   VerifiedToken,
   TokenIntrospectionRequest,
@@ -14,54 +20,7 @@ import type {
   OAuthServerMetadata,
 } from './oauthTypes.js';
 
-type TokenVerifierOperation =
-  | 'initialize'
-  | 'verifyToken'
-  | 'verifyViaIntrospection'
-  | 'verifyViaJWT';
-
-type TokenVerifierErrorReason =
-  | 'metadataRequest'
-  | 'notInitialized'
-  | 'missingIntrospectionEndpoint'
-  | 'introspectionRequest'
-  | 'inactiveToken'
-  | 'invalidAudience'
-  | 'missingScopes'
-  | 'missingJwksUri'
-  | 'jwtVerification';
-
-/** Tagged failure returned by token verifier Effects. */
-export class TokenVerifierError extends Data.TaggedError('TokenVerifierError')<{
-  /** Verifier operation that failed. */
-  readonly operation: TokenVerifierOperation;
-  /** Stable reason for the verifier failure. */
-  readonly reason: TokenVerifierErrorReason;
-  /** Human-readable failure message safe for the HTTP auth boundary. */
-  readonly message: string;
-  /** Lower-level HTTP, JWT, or parsing cause. */
-  readonly cause?: unknown;
-}> {}
-
-interface TokenVerifierErrorInput {
-  readonly operation: TokenVerifierOperation;
-  readonly reason: TokenVerifierErrorReason;
-  readonly message: string;
-  readonly cause?: unknown;
-}
-
-const tokenVerifierError = ({
-  operation,
-  reason,
-  message,
-  cause,
-}: TokenVerifierErrorInput): TokenVerifierError =>
-  new TokenVerifierError({
-    operation,
-    reason,
-    message,
-    ...(cause === undefined ? {} : { cause }),
-  });
+export type { TokenVerifierError } from '@/auth/tokenVerifierError.js';
 
 /**
  * OAuth issuer and audience settings used to validate MCP access tokens.

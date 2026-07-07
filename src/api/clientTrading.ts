@@ -1,13 +1,14 @@
 import XmlBuilder, { type XMLBuilder as XmlBuilderInstance } from 'fast-xml-builder';
 import { XMLParser } from 'fast-xml-parser';
 import type { EbayApiClient } from '@/api/client.js';
+import { TradingApiFailure } from '@/api/clientTradingError.js';
 import { EbayApiError } from '@/api/shared/request.js';
 import { getBaseUrl } from '@/config/environment.js';
 import { getErrorMessage } from '@/utils/errors.js';
 import { httpRequestEffect } from '@/utils/http.js';
 import { apiLogger } from '@/utils/logger.js';
 import { isRecord } from '@/utils/typeGuards.js';
-import { Data, Effect } from 'effect';
+import { Effect } from 'effect';
 
 const COMPAT_LEVEL = '1451';
 const SITE_ID = '0';
@@ -45,18 +46,6 @@ interface TradingParseContext extends TradingFailureContext {
   /** XML response body returned by the Trading API endpoint. */
   readonly responseText: string;
 }
-
-/** Tagged cause attached to {@link EbayApiError} for Trading XML failures. */
-class TradingApiFailure extends Data.TaggedError('TradingApiFailure')<{
-  /** Trading API call name, such as GetItem. */
-  readonly callName: string;
-  /** Absolute Trading API request URL. */
-  readonly path: string;
-  /** Human-readable Trading API failure message. */
-  readonly message: string;
-  /** Lower-level parser, HTTP, or response payload cause. */
-  readonly cause?: unknown;
-}> {}
 
 const buildTradingPath = (baseUrl: string): string => `${baseUrl}${TRADING_ENDPOINT_PATH}`;
 

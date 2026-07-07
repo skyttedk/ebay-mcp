@@ -1,11 +1,12 @@
 import { EbayOAuthClient, type EbayOAuthError } from '@/auth/oauth.js';
+import { clientRequestError, type EbayClientRequestError } from '@/api/clientRequestError.js';
 import { getBaseUrl } from '@/config/environment.js';
 import type { EbayConfig } from '@/types/ebay.js';
 import { getErrorMessage } from '@/utils/errors.js';
 import { httpRequestEffect, isHttpError, type ResponseType } from '@/utils/http.js';
 import { isRecord } from '@/utils/typeGuards.js';
 import { apiLogger, logRequest, logResponse, logErrorResponse } from '@/utils/logger.js';
-import { Data, Effect } from 'effect';
+import { Effect } from 'effect';
 
 /**
  * Per-request overrides accepted by the verb helpers ({@link EbayApiClient.get}
@@ -55,58 +56,6 @@ interface RequestFailureContext {
   /** Retry counters for this attempt. */
   readonly state: RequestRetryState;
 }
-
-type EbayClientRequestErrorKind =
-  | 'missingCredentials'
-  | 'localRateLimit'
-  | 'tokenAcquisition'
-  | 'missingAccessToken'
-  | 'tokenRefresh'
-  | 'remoteRateLimit'
-  | 'httpStatus'
-  | 'transport';
-
-/** Tagged failure raised inside the REST client's request/retry Effect. */
-class EbayClientRequestError extends Data.TaggedError('EbayClientRequestError')<{
-  /** Request failure category used by tests and endpoint wrappers. */
-  readonly kind: EbayClientRequestErrorKind;
-  /** HTTP method used by the failed request. */
-  readonly method: string;
-  /** Fully qualified request URL. */
-  readonly url: string;
-  /** Human-readable failure message. */
-  readonly message: string;
-  /** HTTP response status when the failure came from eBay. */
-  readonly status?: number;
-  /** Lower-level transport, auth, or response parsing cause. */
-  readonly cause?: unknown;
-}> {}
-
-interface EbayClientRequestErrorInput {
-  readonly kind: EbayClientRequestErrorKind;
-  readonly method: string;
-  readonly url: string;
-  readonly message: string;
-  readonly status?: number;
-  readonly cause?: unknown;
-}
-
-const clientRequestError = ({
-  kind,
-  method,
-  url,
-  message,
-  status,
-  cause,
-}: EbayClientRequestErrorInput): EbayClientRequestError =>
-  new EbayClientRequestError({
-    kind,
-    method,
-    url,
-    message,
-    ...(status === undefined ? {} : { status }),
-    ...(cause === undefined ? {} : { cause }),
-  });
 
 /** Sleep for a retry backoff delay without exposing timers to callers. */
 const sleep = (delayMs: number): Effect.Effect<void> =>

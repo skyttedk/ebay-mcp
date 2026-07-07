@@ -11,4 +11,3 @@ export class TradingApiFailure extends Data.TaggedError('TradingApiFailure')<{
   /** Lower-level parser, HTTP, or response payload cause. */
   readonly cause?: unknown;
 }> {}
-
