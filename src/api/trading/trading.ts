@@ -32,83 +32,13 @@ type EndListingInput = z.infer<typeof endListingSchema>;
 /** Input accepted by relistItem. */
 type RelistItemInput = z.infer<typeof relistItemSchema>;
 
-const asRecord = (value: unknown): Record<string, unknown> | undefined =>
-  isRecord(value) ? value : undefined;
-
 const asRecordArray = (value: unknown): Record<string, unknown>[] => {
   if (!Array.isArray(value)) {
     return [];
   }
 
-  return value.filter(
-    (entry): entry is Record<string, unknown> =>
-      typeof entry === 'object' && entry !== null && !Array.isArray(entry),
-  );
+  return value.filter(isRecord);
 };
-
-const stringValue = (value: unknown): string => {
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-    return String(value);
-  }
-
-  return '';
-};
-
-const numberValue = (value: unknown): number => {
-  if (typeof value !== 'number' && typeof value !== 'string') {
-    return 0;
-  }
-
-  const number = Number(value);
-  return Number.isFinite(number) ? number : 0;
-};
-
-const priceValue = (value: unknown): number => {
-  const price = asRecord(value);
-  if (price && price['#text'] !== undefined) {
-    return numberValue(price['#text']);
-  }
-
-  return numberValue(value);
-};
-
-/**
- * One active fixed-price listing summary extracted from GetMyeBaySelling.
- *
- * @see https://developer.ebay.com/devzone/xml/docs/reference/ebay/getmyebayselling.html
- */
-export interface ListingSummary {
-  /** eBay item identifier. */
-  readonly itemId: string;
-  /** Listing title returned by Trading API. */
-  readonly title: string;
-  /** Seller SKU returned by Trading API. */
-  readonly sku: string;
-  /** Total quantity listed. */
-  readonly quantity: number;
-  /** Remaining quantity available for purchase. */
-  readonly quantityAvailable: number;
-  /** Current listing price as a number. */
-  readonly currentPrice: number;
-  /** Number of buyers watching the listing. */
-  readonly watchCount: number;
-  /** Trading API listing type value. */
-  readonly listingType: string;
-}
-
-/**
- * Active listing page returned by getActiveListings.
- *
- * @see https://developer.ebay.com/devzone/xml/docs/reference/ebay/getmyebayselling.html
- */
-export interface ActiveListingsResult {
-  /** Active fixed-price listing summaries on the requested page. */
-  readonly listings: ListingSummary[];
-  /** Total active listings reported by eBay. */
-  readonly total: number;
-  /** Total active-listing pages reported by eBay. */
-  readonly totalPages: number;
-}
 
 /** Parsed Trading API object payload returned by listing write calls. */
 export type TradingRecordResponse = Record<string, unknown>;
@@ -127,11 +57,11 @@ export class TradingApi {
    * Fetches active seller listings with Trading API pagination metadata.
    *
    * @param input - Optional page number and entries-per-page values.
-   * @returns An Effect that succeeds with normalized active listing summaries.
+   * @returns An Effect that succeeds with the parsed GetMyeBaySelling response payload.
    *
    * @example
    * ```ts
-   * const active = await Effect.runPromise(
+   * const response = await Effect.runPromise(
    *   tradingApi.getActiveListings({ page: 2, entriesPerPage: 25 }),
    * );
    * ```
@@ -140,7 +70,7 @@ export class TradingApi {
    */
   getActiveListings = (
     input: GetActiveListingsInput = {},
-  ): Effect.Effect<ActiveListingsResult, EbayApiError | EndpointInputError> => {
+  ): Effect.Effect<TradingRecordResponse, EbayApiError | EndpointInputError> => {
     const tradingClient = this.client;
 
     return Effect.gen(function* () {
@@ -153,7 +83,7 @@ export class TradingApi {
       const page = inputPage === undefined ? 1 : inputPage;
       const entriesPerPage = inputEntriesPerPage === undefined ? 50 : inputEntriesPerPage;
 
-      const result = yield* tradingClient.execute('GetMyeBaySelling', {
+      return yield* tradingClient.execute('GetMyeBaySelling', {
         ActiveList: {
           Sort: 'TimeLeft',
           Pagination: {
@@ -162,31 +92,6 @@ export class TradingApi {
           },
         },
       });
-
-      const activeList = asRecord(result.ActiveList);
-      const itemArray = asRecord(activeList?.ItemArray);
-      const items = asRecordArray(itemArray?.Item);
-      const pagination = asRecord(activeList?.PaginationResult);
-      const listings: ListingSummary[] = items.map((item) => {
-        const sellingStatus = asRecord(item.SellingStatus);
-
-        return {
-          itemId: stringValue(item.ItemID),
-          title: stringValue(item.Title),
-          sku: stringValue(item.SKU),
-          quantity: numberValue(item.Quantity),
-          quantityAvailable: numberValue(item.QuantityAvailable),
-          currentPrice: priceValue(sellingStatus?.CurrentPrice),
-          watchCount: numberValue(item.WatchCount),
-          listingType: stringValue(item.ListingType),
-        };
-      });
-
-      return {
-        listings,
-        total: numberValue(pagination?.TotalNumberOfEntries),
-        totalPages: numberValue(pagination?.TotalNumberOfPages),
-      };
     });
   };
 

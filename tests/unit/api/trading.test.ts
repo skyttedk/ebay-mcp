@@ -11,61 +11,47 @@ beforeEach(() => {
   api = new TradingApi(mockClient as unknown as TradingApiClient);
 });
 
-it('normalizes active listing rows from GetMyeBaySelling', async () => {
-  mockClient.execute.mockReturnValue(
-    Effect.succeed({
-      Ack: 'Success',
-      ActiveList: {
-        ItemArray: {
-          Item: [
-            {
-              ItemID: '167382780779',
-              Title: 'Bambu Lab 0.2mm Nozzle',
-              SKU: 'NZ-2MM',
-              Quantity: 10,
-              QuantityAvailable: 4,
-              SellingStatus: { CurrentPrice: { '#text': 12.99 } },
-              WatchCount: 3,
-              ListingType: 'FixedPriceItem',
-            },
-          ],
-        },
-        PaginationResult: { TotalNumberOfEntries: 1, TotalNumberOfPages: 1 },
+it('returns raw active listings payload from GetMyeBaySelling', async () => {
+  const activeListingsResponse = {
+    Ack: 'Success',
+    ActiveList: {
+      ItemArray: {
+        Item: [
+          {
+            ItemID: '167382780779',
+            Title: 'Bambu Lab 0.2mm Nozzle',
+            SKU: 'NZ-2MM',
+            Quantity: 10,
+            QuantityAvailable: 4,
+            SellingStatus: { CurrentPrice: { '#text': 12.99 } },
+            WatchCount: 3,
+            ListingType: 'FixedPriceItem',
+          },
+        ],
       },
-    }),
-  );
+      PaginationResult: { TotalNumberOfEntries: 1, TotalNumberOfPages: 1 },
+    },
+  };
+  mockClient.execute.mockReturnValue(Effect.succeed(activeListingsResponse));
 
   const result = await Effect.runPromise(api.getActiveListings());
 
-  expect(result.listings).toHaveLength(1);
-  expect(result.listings[0]).toEqual({
-    itemId: '167382780779',
-    title: 'Bambu Lab 0.2mm Nozzle',
-    sku: 'NZ-2MM',
-    quantity: 10,
-    quantityAvailable: 4,
-    currentPrice: 12.99,
-    watchCount: 3,
-    listingType: 'FixedPriceItem',
-  });
-  expect(result.total).toBe(1);
+  expect(result).toBe(activeListingsResponse);
 });
 
-it('handles empty active listings', async () => {
-  mockClient.execute.mockReturnValue(
-    Effect.succeed({
-      Ack: 'Success',
-      ActiveList: {
-        ItemArray: null,
-        PaginationResult: { TotalNumberOfEntries: 0 },
-      },
-    }),
-  );
+it('returns empty active listings payload unchanged', async () => {
+  const emptyListingsResponse = {
+    Ack: 'Success',
+    ActiveList: {
+      ItemArray: null,
+      PaginationResult: { TotalNumberOfEntries: 0 },
+    },
+  };
+  mockClient.execute.mockReturnValue(Effect.succeed(emptyListingsResponse));
 
   const result = await Effect.runPromise(api.getActiveListings());
 
-  expect(result.listings).toEqual([]);
-  expect(result.total).toBe(0);
+  expect(result).toBe(emptyListingsResponse);
 });
 
 it('passes active listing pagination params to execute', async () => {

@@ -6,7 +6,7 @@ import type * as FsModule from 'fs';
 import { mkdtempSync, promises as fsPromises, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import path from 'path';
-import { EbayOAuthClient } from '@/auth/oauth.js';
+import { EbayOAuthClient, type EbayOAuthError } from '@/auth/oauth.js';
 import type { EbayConfig } from '@/types/ebay.js';
 import { mockOAuthTokenEndpoint, cleanupMocks } from '@tests/helpers/mockHttp.js';
 import process from 'node:process';
@@ -43,6 +43,24 @@ const exchangeCodeForToken = (client: EbayOAuthClient, code: string) =>
 
 const refreshUserToken = (client: EbayOAuthClient): Promise<void> =>
   Effect.runPromise(client.refreshUserToken());
+
+const expectOAuthFailure = async (
+  effect: Effect.Effect<unknown, EbayOAuthError>,
+  expected: {
+    readonly operation: EbayOAuthError['operation'];
+    readonly message: string | RegExp;
+  },
+): Promise<void> => {
+  const error = await Effect.runPromise(Effect.flip(effect));
+
+  expect(error._tag).toBe('EbayOAuthError');
+  expect(error.operation).toBe(expected.operation);
+  if (expected.message instanceof RegExp) {
+    expect(error.message).toMatch(expected.message);
+  } else {
+    expect(error.message).toContain(expected.message);
+  }
+};
 
 describe('EbayOAuthClient', () => {
   let oauthClient: EbayOAuthClient;
@@ -180,12 +198,15 @@ describe('EbayOAuthClient', () => {
       expect(token).toBe(newAccessToken);
     });
 
-    it('throw error when both access and refresh tokens are expired', async () => {
+    it('returns tagged error when both access and refresh tokens are expired', async () => {
       // Set tokens with both expired
       const pastExpiry = Date.now() - 1000;
       await setUserTokens(oauthClient, 'expired_access', 'expired_refresh', pastExpiry, pastExpiry);
 
-      await expect(getAccessToken(oauthClient)).rejects.toThrow();
+      await expectOAuthFailure(oauthClient.getAccessToken(), {
+        operation: 'getAccessToken',
+        message: 'User authorization expired',
+      });
     });
 
     it('fallback to client credentials when no user tokens', async () => {
@@ -270,13 +291,14 @@ describe('EbayOAuthClient', () => {
       expect(oauthClient.hasUserTokens()).toBe(true);
     });
 
-    it('throw error if redirect URI is not configured', async () => {
+    it('returns tagged error if redirect URI is not configured', async () => {
       const configWithoutRedirect = { ...config, redirectUri: undefined };
       const clientWithoutRedirect = new EbayOAuthClient(configWithoutRedirect);
 
-      await expect(exchangeCodeForToken(clientWithoutRedirect, 'code_12345')).rejects.toThrow(
-        'Redirect URI is required',
-      );
+      await expectOAuthFailure(clientWithoutRedirect.exchangeCodeForToken('code_12345'), {
+        operation: 'exchangeCodeForToken',
+        message: 'Redirect URI is required',
+      });
     });
 
     it('handle OAuth exchange errors', async () => {
@@ -287,9 +309,10 @@ describe('EbayOAuthClient', () => {
         error_description: 'Invalid authorization code',
       });
 
-      await expect(exchangeCodeForToken(oauthClient, code)).rejects.toThrow(
-        'Invalid authorization code',
-      );
+      await expectOAuthFailure(oauthClient.exchangeCodeForToken(code), {
+        operation: 'exchangeCodeForToken',
+        message: 'Invalid authorization code',
+      });
     });
   });
 

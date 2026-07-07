@@ -5,44 +5,64 @@ import { defineTool } from '@/tools/defineTool.js';
 import type { ToolEntry } from '@/tools/registry.js';
 import { convertToTimestamp, validateTokenExpiry } from '@/utils/dateConverter.js';
 import { getErrorMessage } from '@/utils/errors.js';
-import { Effect, Either } from 'effect';
+import { Data, Effect, Either } from 'effect';
 
-/**
- * Build a user-facing token-management error with the original cause attached in text.
- *
- * @param message - Operation-specific failure prefix.
- * @param error - Lower-level cause raised by parsing, storage, or OAuth calls.
- * @returns Error returned by the MCP tool boundary.
- *
- * @example
- * ```ts
- * Effect.fail(tokenToolError('Failed to refresh access token', error));
- * ```
- */
-const tokenToolError = (message: string, error: unknown): Error =>
-  new Error(`${message}: ${getErrorMessage(error, String(error))}`);
+type TokenManagementToolOperation =
+  | 'getOAuthUrl'
+  | 'setUserTokens'
+  | 'validateTokenExpiry'
+  | 'convertDateToTimestamp'
+  | 'refreshAccessToken'
+  | 'exchangeAuthorizationCode';
+
+/** Tagged failure raised inside token-management tool handlers. */
+class TokenManagementToolError extends Data.TaggedError('TokenManagementToolError')<{
+  /** Tool operation that failed. */
+  readonly operation: TokenManagementToolOperation;
+  /** Human-readable failure message returned at the MCP boundary. */
+  readonly message: string;
+  /** Lower-level OAuth, storage, date parsing, or decoding cause. */
+  readonly cause?: unknown;
+}> {}
+
+const tokenToolError = (
+  operation: TokenManagementToolOperation,
+  message: string,
+  error?: unknown,
+): TokenManagementToolError =>
+  new TokenManagementToolError({
+    operation,
+    message: error === undefined ? message : `${message}: ${getErrorMessage(error, String(error))}`,
+    ...(error === undefined ? {} : { cause: error }),
+  });
 
 /** Convert an optional token expiry value into a timestamp inside the token tool Effect. */
 const optionalTokenExpiryTimestamp = (
   value: string | number | undefined,
+  operation: TokenManagementToolOperation,
   message: string,
-): Effect.Effect<number | undefined, Error> => {
+): Effect.Effect<number | undefined, TokenManagementToolError> => {
   if (value === undefined) {
     return Effect.succeed(undefined);
   }
 
-  return convertToTimestamp(value).pipe(Effect.mapError((error) => tokenToolError(message, error)));
+  return convertToTimestamp(value).pipe(
+    Effect.mapError((error) => tokenToolError(operation, message, error)),
+  );
 };
 
-const missingClientIdError = new Error(
+const missingClientIdError = tokenToolError(
+  'getOAuthUrl',
   'EBAY_CLIENT_ID environment variable is required to generate OAuth URL',
 );
 
-const missingRedirectUriError = new Error(
+const missingRedirectUriError = tokenToolError(
+  'getOAuthUrl',
   'Redirect URI is required. Either provide it as a parameter or set EBAY_REDIRECT_URI in your .env file.',
 );
 
-const missingUserTokensError = new Error(
+const missingUserTokensError = tokenToolError(
+  'refreshAccessToken',
   'No user tokens available. Please set user tokens first using ebay_set_user_tokens_with_expiry or add EBAY_USER_REFRESH_TOKEN to your .env file.',
 );
 
@@ -201,7 +221,9 @@ export const tokenManagementEntries: ToolEntry[] = [
     handler: (api, args) =>
       Effect.runPromise(
         api.setUserTokens(args.accessToken, args.refreshToken).pipe(
-          Effect.mapError((error) => tokenToolError('Failed to set user tokens', error)),
+          Effect.mapError((error) =>
+            tokenToolError('setUserTokens', 'Failed to set user tokens', error),
+          ),
           Effect.map(() => ({
             success: true,
             message:
@@ -224,16 +246,22 @@ export const tokenManagementEntries: ToolEntry[] = [
         Effect.gen(function* () {
           const accessExpiry = yield* optionalTokenExpiryTimestamp(
             accessTokenExpiry,
+            'setUserTokens',
             'Failed to set user tokens',
           );
           const refreshExpiry = yield* optionalTokenExpiryTimestamp(
             refreshTokenExpiry,
+            'setUserTokens',
             'Failed to set user tokens',
           );
 
           yield* api
             .setUserTokens(accessToken, refreshToken, accessExpiry, refreshExpiry)
-            .pipe(Effect.mapError((error) => tokenToolError('Failed to set user tokens', error)));
+            .pipe(
+              Effect.mapError((error) =>
+                tokenToolError('setUserTokens', 'Failed to set user tokens', error),
+              ),
+            );
 
           if (autoRefresh) {
             const refreshResult = yield* Effect.either(
@@ -267,11 +295,7 @@ export const tokenManagementEntries: ToolEntry[] = [
             tokenInfo: api.getTokenInfo(),
             refreshed: false,
           };
-        }).pipe(
-          Effect.mapError((error) =>
-            error instanceof Error ? error : tokenToolError('Failed to set user tokens', error),
-          ),
-        ),
+        }),
       );
     },
   }),
@@ -326,10 +350,14 @@ export const tokenManagementEntries: ToolEntry[] = [
       Effect.runPromise(
         Effect.gen(function* () {
           const accessExpiry = yield* convertToTimestamp(args.accessTokenExpiry).pipe(
-            Effect.mapError((error) => tokenToolError('Failed to validate token expiry', error)),
+            Effect.mapError((error) =>
+              tokenToolError('validateTokenExpiry', 'Failed to validate token expiry', error),
+            ),
           );
           const refreshExpiry = yield* convertToTimestamp(args.refreshTokenExpiry).pipe(
-            Effect.mapError((error) => tokenToolError('Failed to validate token expiry', error)),
+            Effect.mapError((error) =>
+              tokenToolError('validateTokenExpiry', 'Failed to validate token expiry', error),
+            ),
           );
           const validation = validateTokenExpiry(accessExpiry, refreshExpiry);
 
@@ -354,7 +382,9 @@ export const tokenManagementEntries: ToolEntry[] = [
       return Effect.runPromise(
         Effect.gen(function* () {
           const timestamp = yield* convertToTimestamp(dateInput).pipe(
-            Effect.mapError((error) => tokenToolError('Failed to convert date', error)),
+            Effect.mapError((error) =>
+              tokenToolError('convertDateToTimestamp', 'Failed to convert date', error),
+            ),
           );
 
           return {
@@ -409,7 +439,9 @@ export const tokenManagementEntries: ToolEntry[] = [
           yield* authClient
             .refreshUserToken()
             .pipe(
-              Effect.mapError((error) => tokenToolError('Failed to refresh access token', error)),
+              Effect.mapError((error) =>
+                tokenToolError('refreshAccessToken', 'Failed to refresh access token', error),
+              ),
             );
 
           return yield* Effect.sync(() => {
@@ -466,11 +498,24 @@ export const tokenManagementEntries: ToolEntry[] = [
           // Codes arriving from a redirect URL may be percent-encoded.
           const decodedCode = yield* Effect.try({
             try: () => (code.includes('%') ? decodeURIComponent(code) : code),
-            catch: (error) => error,
+            catch: (error) =>
+              tokenToolError(
+                'exchangeAuthorizationCode',
+                'Failed to exchange authorization code',
+                error,
+              ),
           });
 
           const authClient = api.getAuthClient().getOAuthClient();
-          const tokenData = yield* authClient.exchangeCodeForToken(decodedCode);
+          const tokenData = yield* authClient.exchangeCodeForToken(decodedCode).pipe(
+            Effect.mapError((error) =>
+              tokenToolError(
+                'exchangeAuthorizationCode',
+                'Failed to exchange authorization code',
+                error,
+              ),
+            ),
+          );
 
           return {
             success: true,
@@ -486,11 +531,7 @@ export const tokenManagementEntries: ToolEntry[] = [
             },
             note: 'The refresh token has been saved to your .env file for future use.',
           };
-        }).pipe(
-          Effect.mapError((error) =>
-            tokenToolError('Failed to exchange authorization code', error),
-          ),
-        ),
+        }),
       );
     },
   }),

@@ -64,53 +64,64 @@ export interface GetCompatibilityPropertyValuesInput {
 }
 
 /**
+ * Raw Taxonomy API response payload.
+ *
+ * The current generated type tree does not include a commerce taxonomy module,
+ * so taxonomy endpoints return eBay's payload unchanged instead of inventing an
+ * internal response model.
+ *
+ * @see https://developer.ebay.com/api-docs/commerce/taxonomy/overview.html
+ */
+type TaxonomyRawResponse = Record<string, unknown>;
+
+/**
  * Response returned by eBay Taxonomy API getDefaultCategoryTreeId.
  *
  * @see https://developer.ebay.com/api-docs/commerce/taxonomy/resources/category_tree/methods/getDefaultCategoryTreeId
  */
-export type GetDefaultCategoryTreeIdResponse = Record<string, unknown>;
+export type GetDefaultCategoryTreeIdResponse = TaxonomyRawResponse;
 
 /**
  * Response returned by eBay Taxonomy API getCategoryTree.
  *
  * @see https://developer.ebay.com/api-docs/commerce/taxonomy/resources/category_tree/methods/getCategoryTree
  */
-export type GetCategoryTreeResponse = Record<string, unknown>;
+export type GetCategoryTreeResponse = TaxonomyRawResponse;
 
 /**
  * Response returned by eBay Taxonomy API getCategorySubtree.
  *
  * @see https://developer.ebay.com/api-docs/commerce/taxonomy/resources/category_tree/methods/getCategorySubtree
  */
-export type GetCategorySubtreeResponse = Record<string, unknown>;
+export type GetCategorySubtreeResponse = TaxonomyRawResponse;
 
 /**
  * Response returned by eBay Taxonomy API getCategorySuggestions.
  *
  * @see https://developer.ebay.com/api-docs/commerce/taxonomy/resources/category_tree/methods/getCategorySuggestions
  */
-export type GetCategorySuggestionsResponse = Record<string, unknown>;
+export type GetCategorySuggestionsResponse = TaxonomyRawResponse;
 
 /**
  * Response returned by eBay Taxonomy API getItemAspectsForCategory.
  *
  * @see https://developer.ebay.com/api-docs/commerce/taxonomy/resources/category_tree/methods/getItemAspectsForCategory
  */
-export type GetItemAspectsForCategoryResponse = Record<string, unknown>;
+export type GetItemAspectsForCategoryResponse = TaxonomyRawResponse;
 
 /**
  * Response returned by eBay Taxonomy API getCompatibilityProperties.
  *
  * @see https://developer.ebay.com/api-docs/commerce/taxonomy/resources/category_tree/methods/getCompatibilityProperties
  */
-export type GetCompatibilityPropertiesResponse = Record<string, unknown>;
+export type GetCompatibilityPropertiesResponse = TaxonomyRawResponse;
 
 /**
  * Response returned by eBay Taxonomy API getCompatibilityPropertyValues.
  *
  * @see https://developer.ebay.com/api-docs/commerce/taxonomy/resources/category_tree/methods/getCompatibilityPropertyValues
  */
-export type GetCompatibilityPropertyValuesResponse = Record<string, unknown>;
+export type GetCompatibilityPropertyValuesResponse = TaxonomyRawResponse;
 
 /** Taxonomy API - category trees, category suggestions, and compatibility metadata. */
 export class TaxonomyApi {

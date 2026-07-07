@@ -2,6 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import path from 'path';
 import dotenv from 'dotenv';
+import { Effect } from 'effect';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   buildCredentialDisplay,
@@ -36,7 +37,9 @@ describe('credential session', () => {
     writeFileSync(envPath, 'EBAY_CLIENT_ID=client\n', 'utf-8');
 
     const store = new DotEnvCredentialStore(() => envPath);
-    store.write({ EBAY_USER_ACCESS_TOKEN: 'access', EBAY_USER_REFRESH_TOKEN: 'refresh' });
+    Effect.runSync(
+      store.write({ EBAY_USER_ACCESS_TOKEN: 'access', EBAY_USER_REFRESH_TOKEN: 'refresh' }),
+    );
 
     const parsed = dotenv.parse(readFileSync(envPath, 'utf-8'));
     expect(parsed).toMatchObject({

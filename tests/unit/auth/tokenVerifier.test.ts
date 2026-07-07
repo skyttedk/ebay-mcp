@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import nock from 'nock';
 import * as jose from 'jose';
 import { Effect } from 'effect';
-import { TokenVerifier } from '@/auth/tokenVerifier.js';
+import { TokenVerifier, type TokenVerifierError } from '@/auth/tokenVerifier.js';
 import { invalidInput } from '@tests/helpers/invalidInput.js';
 import type { OAuthServerMetadata } from '@/auth/oauthTypes.js';
 
@@ -18,6 +18,26 @@ const initializeVerifier = (verifier: TokenVerifier): Promise<void> =>
 
 const verifyToken = (verifier: TokenVerifier, token: string) =>
   Effect.runPromise(verifier.verifyToken(token));
+
+const expectVerifierFailure = async (
+  effect: Effect.Effect<unknown, TokenVerifierError>,
+  expected: {
+    readonly operation: TokenVerifierError['operation'];
+    readonly reason: TokenVerifierError['reason'];
+    readonly message: string | RegExp;
+  },
+): Promise<void> => {
+  const error = await Effect.runPromise(Effect.flip(effect));
+
+  expect(error._tag).toBe('TokenVerifierError');
+  expect(error.operation).toBe(expected.operation);
+  expect(error.reason).toBe(expected.reason);
+  if (expected.message instanceof RegExp) {
+    expect(error.message).toMatch(expected.message);
+  } else {
+    expect(error.message).toContain(expected.message);
+  }
+};
 
 describe('TokenVerifier', () => {
   const mockMetadata: OAuthServerMetadata = {
@@ -64,7 +84,7 @@ describe('TokenVerifier', () => {
       expect(nock.pendingMocks()).toHaveLength(0);
     });
 
-    it('throw error if metadata loading fails', async () => {
+    it('returns tagged error if metadata loading fails', async () => {
       nock(ORIGIN).get(METADATA_PATH).reply(500, { error: 'server_error' });
 
       const verifier = new TokenVerifier({
@@ -72,9 +92,11 @@ describe('TokenVerifier', () => {
         expectedAudience: 'http://localhost:3000',
       });
 
-      await expect(initializeVerifier(verifier)).rejects.toThrow(
-        /Failed to load OAuth server metadata/,
-      );
+      await expectVerifierFailure(verifier.initialize(), {
+        operation: 'initialize',
+        reason: 'metadataRequest',
+        message: /Failed to load OAuth server metadata/,
+      });
     });
   });
 
@@ -124,7 +146,11 @@ describe('TokenVerifier', () => {
 
       await initializeVerifier(verifier);
 
-      await expect(verifyToken(verifier, 'invalid-token')).rejects.toThrow('Token is not active');
+      await expectVerifierFailure(verifier.verifyToken('invalid-token'), {
+        operation: 'verifyViaIntrospection',
+        reason: 'inactiveToken',
+        message: 'Token is not active',
+      });
     });
 
     it('reject tokens with invalid audience', async () => {
@@ -140,7 +166,11 @@ describe('TokenVerifier', () => {
 
       await initializeVerifier(verifier);
 
-      await expect(verifyToken(verifier, 'test-token')).rejects.toThrow(/Invalid audience/);
+      await expectVerifierFailure(verifier.verifyToken('test-token'), {
+        operation: 'verifyViaIntrospection',
+        reason: 'invalidAudience',
+        message: /Invalid audience/,
+      });
     });
 
     it('reject tokens with missing scopes', async () => {
@@ -157,7 +187,11 @@ describe('TokenVerifier', () => {
 
       await initializeVerifier(verifier);
 
-      await expect(verifyToken(verifier, 'test-token')).rejects.toThrow(/Missing required scopes/);
+      await expectVerifierFailure(verifier.verifyToken('test-token'), {
+        operation: 'verifyViaIntrospection',
+        reason: 'missingScopes',
+        message: /Missing required scopes/,
+      });
     });
 
     it('handle introspection endpoint errors', async () => {
@@ -171,12 +205,14 @@ describe('TokenVerifier', () => {
 
       await initializeVerifier(verifier);
 
-      await expect(verifyToken(verifier, 'test-token')).rejects.toThrow(
-        'Token introspection failed: Invalid token',
-      );
+      await expectVerifierFailure(verifier.verifyToken('test-token'), {
+        operation: 'verifyViaIntrospection',
+        reason: 'introspectionRequest',
+        message: 'Token introspection failed: Invalid token',
+      });
     });
 
-    it('throw error if introspection endpoint not available', async () => {
+    it('returns tagged error if introspection endpoint is not available', async () => {
       const metadataWithoutIntrospection = {
         issuer: 'http://localhost:8080/realms/master',
         authorization_endpoint: 'http://localhost:8080/realms/master/protocol/openid-connect/auth',
@@ -192,9 +228,11 @@ describe('TokenVerifier', () => {
 
       await initializeVerifier(verifier);
 
-      await expect(verifyToken(verifier, 'test-token')).rejects.toThrow(
-        'Introspection endpoint not available',
-      );
+      await expectVerifierFailure(verifier.verifyToken('test-token'), {
+        operation: 'verifyViaIntrospection',
+        reason: 'missingIntrospectionEndpoint',
+        message: 'Introspection endpoint not available',
+      });
     });
   });
 
@@ -292,12 +330,14 @@ describe('TokenVerifier', () => {
 
       await initializeVerifier(verifier);
 
-      await expect(verifyToken(verifier, 'test-jwt-token')).rejects.toThrow(
-        /Missing required scopes/,
-      );
+      await expectVerifierFailure(verifier.verifyToken('test-jwt-token'), {
+        operation: 'verifyViaJWT',
+        reason: 'missingScopes',
+        message: /Missing required scopes/,
+      });
     });
 
-    it('throw error if JWKS URI not available', async () => {
+    it('returns tagged error if JWKS URI is not available', async () => {
       const metadataWithoutJWKS = {
         issuer: 'http://localhost:8080/realms/master',
         authorization_endpoint: 'http://localhost:8080/realms/master/protocol/openid-connect/auth',
@@ -312,7 +352,11 @@ describe('TokenVerifier', () => {
 
       await initializeVerifier(verifier);
 
-      await expect(verifyToken(verifier, 'test-token')).rejects.toThrow('JWKS URI not available');
+      await expectVerifierFailure(verifier.verifyToken('test-token'), {
+        operation: 'verifyViaJWT',
+        reason: 'missingJwksUri',
+        message: 'JWKS URI not available',
+      });
     });
 
     it('handle JWT verification failures', async () => {
@@ -327,9 +371,11 @@ describe('TokenVerifier', () => {
 
       await initializeVerifier(verifier);
 
-      await expect(verifyToken(verifier, 'invalid-jwt')).rejects.toThrow(
-        'JWT verification failed: Invalid signature',
-      );
+      await expectVerifierFailure(verifier.verifyToken('invalid-jwt'), {
+        operation: 'verifyViaJWT',
+        reason: 'jwtVerification',
+        message: 'JWT verification failed: Invalid signature',
+      });
     });
 
     it('use azp claim if client_id not present', async () => {
@@ -402,15 +448,17 @@ describe('TokenVerifier', () => {
   });
 
   describe('verifyToken - not initialized', () => {
-    it('throw error if verify token is called before initialization', async () => {
+    it('returns tagged error if verify token is called before initialization', async () => {
       const verifier = new TokenVerifier({
         authServerMetadata: mockMetadata,
         expectedAudience: 'http://localhost:3000',
       });
 
-      await expect(verifyToken(verifier, 'test-token')).rejects.toThrow(
-        'Token verifier not initialized',
-      );
+      await expectVerifierFailure(verifier.verifyToken('test-token'), {
+        operation: 'verifyToken',
+        reason: 'notInitialized',
+        message: 'Token verifier not initialized',
+      });
     });
   });
 });
