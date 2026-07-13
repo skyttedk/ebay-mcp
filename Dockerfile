@@ -6,14 +6,13 @@ WORKDIR /app
 # Install pnpm
 RUN npm install -g pnpm
 
-# Copy all source files first (before removing prepare script)
+# Copy all source files
 COPY . .
 
-# Now remove prepare script to avoid issues during prod install
-RUN sed -i '/"prepare":/d' package.json
-
-# Install dependencies
-RUN pnpm install --frozen-lockfile || pnpm install
+# --ignore-scripts skips the `prepare` script (husky needs a git repo).
+# NB: do NOT sed-delete the "prepare" line — it is the last script entry and
+# removing it leaves a trailing comma, breaking package.json.
+RUN pnpm install --frozen-lockfile --ignore-scripts || pnpm install --ignore-scripts
 
 # Build the application
 RUN pnpm run build
@@ -26,15 +25,11 @@ WORKDIR /app
 # Install pnpm
 RUN npm install -g pnpm
 
-# Copy package files and remove prepare script
-COPY package.json ./
-RUN sed -i '/"prepare":/d' package.json
+# Copy package files and lockfile
+COPY package.json pnpm-lock.yaml* ./
 
-# Copy lockfile
-COPY pnpm-lock.yaml* ./
-
-# Install only production dependencies
-RUN pnpm install --prod --frozen-lockfile || pnpm install --prod
+# Install only production dependencies (--ignore-scripts: skip husky prepare)
+RUN pnpm install --prod --frozen-lockfile --ignore-scripts || pnpm install --prod --ignore-scripts
 
 # Copy built application from builder
 COPY --from=builder /app/build ./build
