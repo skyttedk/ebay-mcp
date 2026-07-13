@@ -70,8 +70,8 @@ const getProjectRoot = (): string => {
  * ```
  */
 export const createHttpTransportConfigFromEnv = (env: NodeJS.ProcessEnv): HttpTransportConfig => ({
-  host: env.MCP_HOST || 'localhost',
-  port: Number(env.MCP_PORT) || 3000,
+  host: env.MCP_HOST || (env.PORT ? '0.0.0.0' : 'localhost'),
+  port: Number(env.MCP_PORT) || Number(env.PORT) || 3000,
   oauth: {
     authServerUrl: env.OAUTH_AUTH_SERVER_URL ?? 'http://localhost:8080/realms/master',
     clientId: env.OAUTH_CLIENT_ID,
@@ -165,6 +165,24 @@ async function createAuthMiddleware(
   config: HttpTransportConfig,
   serverUrl: string,
 ): Promise<RequestHandler | undefined> {
+  // Static bearer auth for self-hosted deployments (Railway/fleet convention):
+  // when MCP_AUTH_TOKEN is set, require `Authorization: Bearer <MCP_AUTH_TOKEN>`
+  // and skip the full OAuth 2.1 verifier below.
+  const staticToken = process.env.MCP_AUTH_TOKEN;
+  if (staticToken) {
+    serverLogger.info('Static bearer auth enabled via MCP_AUTH_TOKEN.');
+    return (req, res, next) => {
+      if (req.headers.authorization === `Bearer ${staticToken}`) {
+        next();
+        return;
+      }
+      res.status(401).json({
+        error: 'unauthorized',
+        error_description: 'Missing or invalid bearer token',
+      });
+    };
+  }
+
   if (!config.authEnabled) {
     serverLogger.warn('OAuth is disabled. Server running in unauthenticated mode.');
     return;

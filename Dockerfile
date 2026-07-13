@@ -1,5 +1,5 @@
 # Build stage
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -19,7 +19,7 @@ RUN pnpm install --frozen-lockfile || pnpm install
 RUN pnpm run build
 
 # Production stage
-FROM node:18-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
@@ -42,8 +42,12 @@ COPY --from=builder /app/build ./build
 # Copy docs directory (needed for scopes)
 COPY --from=builder /app/docs ./docs
 
+# Copy public assets (icons served at /icons by the HTTP app)
+COPY --from=builder /app/public ./public
+
 # Expose port
 EXPOSE 3000
 
-# Run the server
-CMD ["node", "build/index.js"]
+# Run the HTTP server (streamable-http MCP at `/`, health at `/health`).
+# Binds 0.0.0.0 and picks up Railway's PORT automatically (httpTransport.ts).
+CMD ["node", "build/serverHttp.js"]
