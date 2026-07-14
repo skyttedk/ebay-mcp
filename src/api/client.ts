@@ -129,6 +129,23 @@ export class EbayApiClient {
   }
 
   /**
+   * Serialize the full eBay error body so `errorId`, `longMessage`, and the
+   * `parameters` array survive into the tool result verbatim — eBay's
+   * policy-validation errors name the offending field only in `parameters`,
+   * and are undebuggable without it.
+   */
+  private ebayErrorBody(data: unknown): string {
+    if (data == null) {
+      return '';
+    }
+    try {
+      return ` | response: ${JSON.stringify(data)}`;
+    } catch {
+      return '';
+    }
+  }
+
+  /**
    * Pull the most descriptive eBay error string from a response body when present.
    * eBay REST errors arrive as `{ errors: [{ message, longMessage }] }`.
    */
@@ -387,7 +404,7 @@ export class EbayApiClient {
           method,
           url,
           status: error.status,
-          message: `eBay API Error: ${this.ebayErrorDetail(error.data) ?? error.message}`,
+          message: `eBay API Error: ${this.ebayErrorDetail(error.data) ?? error.message}${this.ebayErrorBody(error.data)}`,
           cause: error,
         }),
       );
