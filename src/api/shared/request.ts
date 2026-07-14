@@ -25,7 +25,17 @@ export class EbayApiError extends Data.TaggedError('EbayApiError')<{
   readonly path: string;
   /** Lower-level transport, parsing, or adapter failure. */
   readonly cause: unknown;
-}> {}
+}> {
+  /**
+   * Surface the underlying failure instead of Effect's generic default
+   * ("An error has occurred") — the cause carries eBay's verbatim error body,
+   * and tool results are undebuggable without it.
+   */
+  override get message(): string {
+    const detail = this.cause instanceof Error ? this.cause.message : String(this.cause);
+    return `eBay ${this.method} ${this.path} failed: ${detail}`;
+  }
+}
 
 /** Tagged validation failure returned before an endpoint request is sent. */
 export class EndpointInputError extends Data.TaggedError('EndpointInputError')<{
