@@ -94,6 +94,10 @@ export class EbayApiClient {
 
     if (this.config.contentLanguage) {
       headers['Content-Language'] = this.config.contentLanguage;
+      // undici's fetch defaults Accept-Language to '*', which eBay's Inventory
+      // API rejects with 25709 "Invalid value for header Accept-Language" —
+      // pin it to the configured locale instead.
+      headers['Accept-Language'] = this.config.contentLanguage;
     }
 
     if (this.config.marketplaceId) {
