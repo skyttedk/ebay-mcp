@@ -1,4 +1,4 @@
-# Dependencies
+﻿# Dependencies
 node_modules/
 .npm/
 .pnpm-store/
@@ -190,16 +190,30 @@ secrets/
 credentials.json
 
 # General (excluding docs/CLAUDE.md which tracks development progress)
-/CLAUDE.md
-!docs/CLAUDE.md
 GEMINI.md
-.claude
+# Claude Code runtime artifacts (config is tracked on purpose)
+.claude/projects/
+.claude/file-history/
+.claude/sessions/
+.claude/shell-snapshots/
+.claude/todos/
+.claude/plans/
+.claude/tasks/
+.claude/cache/
+.claude/backups/
+.claude/debug/
+.claude/uploads/
+.claude/worktrees/
+.claude/dashboard/
+.claude/memory-graph.jsonl
+.claude/pm-state.json
+.claude/*.lock
 .mcp.json
 
 # Generated reports
 devSyncReport.json
 
-# Project docs — kept out of version control per maintainer preference.
+# Project docs â€” kept out of version control per maintainer preference.
 # Files already committed stay tracked; new files under docs/ are ignored.
 /docs/
 
@@ -215,7 +229,6 @@ Taskfile.yml
 *.json
 *.md
 !AGENTS.md
-!CLAUDE.md
 !README*.md
 
 # Tracked structure & config deliverables the broad rules above would otherwise
